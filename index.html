@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Quest 3D - משחק ללימוד אנגלית</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&family=Heebo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loader-container">
+            <div class="loader-ring">
+                <div class="loader-ring-inner"></div>
+            </div>
+            <h2 class="loader-text">English Quest 3D</h2>
+            <p class="loader-subtitle">...טוען את העולם</p>
+            <div class="loader-bar">
+                <div class="loader-bar-fill" id="loader-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="main-menu" class="hidden">
+        <div class="menu-overlay"></div>
+        <div class="menu-content">
+            <div class="menu-logo">
+                <h1 class="game-title">
+                    <span class="title-english">English</span>
+                    <span class="title-quest">Quest</span>
+                    <span class="title-3d">3D</span>
+                </h1>
+                <p class="game-subtitle">המסע שלך ללימוד אנגלית מתחיל כאן</p>
+            </div>
+
+            <div class="menu-stats">
+                <div class="stat-box">
+                    <span class="stat-number" id="total-score">0</span>
+                    <span class="stat-label">ניקוד כולל</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-number" id="words-learned">0</span>
+                    <span class="stat-label">מילים נלמדו</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-number" id="current-level">1</span>
+                    <span class="stat-label">רמה</span>
+                </div>
+            </div>
+
+            <div class="menu-buttons">
+                <button class="menu-btn primary-btn" id="btn-word-match">
+                    <span class="btn-icon">🎯</span>
+                    <div class="btn-text">
+                        <span class="btn-title">התאמת מילים</span>
+                        <span class="btn-desc">התאם את המילה באנגלית לתרגום בעברית</span>
+                    </div>
+                </button>
+                <button class="menu-btn secondary-btn" id="btn-spelling">
+                    <span class="btn-icon">✏️</span>
+                    <div class="btn-text">
+                        <span class="btn-title">איות מילים</span>
+                        <span class="btn-desc">כתוב את המילה באנגלית לפי התרגום</span>
+                    </div>
+                </button>
+                <button class="menu-btn tertiary-btn" id="btn-sentence">
+                    <span class="btn-icon">📝</span>
+                    <div class="btn-text">
+                        <span class="btn-title">השלמת משפטים</span>
+                        <span class="btn-desc">השלם את המילה החסרה במשפט</span>
+                    </div>
+                </button>
+                <button class="menu-btn quaternary-btn" id="btn-speed">
+                    <span class="btn-icon">⚡</span>
+                    <div class="btn-text">
+                        <span class="btn-title">אתגר מהירות</span>
+                        <span class="btn-desc">כמה מילים תצליח בדקה?</span>
+                    </div>
+                </button>
+            </div>
+
+            <div class="difficulty-selector">
+                <span class="diff-label">רמת קושי:</span>
+                <button class="diff-btn active" data-level="beginner">מתחיל</button>
+                <button class="diff-btn" data-level="intermediate">בינוני</button>
+                <button class="diff-btn" data-level="advanced">מתקדם</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game HUD -->
+    <div id="game-hud" class="hidden">
+        <div class="hud-top">
+            <div class="hud-left">
+                <button class="hud-btn" id="btn-back">
+                    <span>◀</span> תפריט
+                </button>
+            </div>
+            <div class="hud-center">
+                <div class="score-display">
+                    <span class="score-label">ניקוד</span>
+                    <span class="score-value" id="game-score">0</span>
+                </div>
+                <div class="combo-display hidden" id="combo-display">
+                    <span class="combo-value" id="combo-value">x2</span>
+                    <span class="combo-label">קומבו!</span>
+                </div>
+            </div>
+            <div class="hud-right">
+                <div class="timer-display" id="timer-display">
+                    <span class="timer-icon">⏱</span>
+                    <span class="timer-value" id="timer-value">60</span>
+                </div>
+                <div class="streak-display">
+                    <span class="streak-fire" id="streak-fire">🔥</span>
+                    <span class="streak-value" id="streak-value">0</span>
+                </div>
+            </div>
+        </div>
+        <div class="hud-progress">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <span class="progress-text" id="progress-text">1/10</span>
+        </div>
+    </div>
+
+    <!-- Word Match Game -->
+    <div id="word-match-ui" class="game-ui hidden">
+        <div class="game-card floating">
+            <div class="card-glow"></div>
+            <h2 class="word-display" id="match-word"></h2>
+            <p class="word-phonetic" id="match-phonetic"></p>
+        </div>
+        <div class="options-grid" id="match-options"></div>
+    </div>
+
+    <!-- Spelling Game -->
+    <div id="spelling-ui" class="game-ui hidden">
+        <div class="game-card floating">
+            <div class="card-glow"></div>
+            <h2 class="hebrew-word" id="spell-hebrew"></h2>
+            <p class="word-hint" id="spell-hint"></p>
+        </div>
+        <div class="spelling-area">
+            <div class="letter-slots" id="letter-slots"></div>
+            <div class="letter-bank" id="letter-bank"></div>
+            <div class="spelling-actions">
+                <button class="action-btn" id="btn-clear-spelling">נקה</button>
+                <button class="action-btn primary" id="btn-check-spelling">בדוק</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sentence Game -->
+    <div id="sentence-ui" class="game-ui hidden">
+        <div class="game-card floating wide">
+            <div class="card-glow"></div>
+            <p class="sentence-display" id="sentence-text"></p>
+            <p class="sentence-hebrew" id="sentence-hebrew"></p>
+        </div>
+        <div class="options-grid" id="sentence-options"></div>
+    </div>
+
+    <!-- Speed Challenge -->
+    <div id="speed-ui" class="game-ui hidden">
+        <div class="speed-word-container">
+            <div class="game-card floating speed-card">
+                <div class="card-glow"></div>
+                <h2 class="word-display" id="speed-word"></h2>
+            </div>
+        </div>
+        <div class="speed-options" id="speed-options"></div>
+    </div>
+
+    <!-- Results Screen -->
+    <div id="results-screen" class="hidden">
+        <div class="results-container">
+            <div class="results-header">
+                <h2 class="results-title" id="results-title">כל הכבוד!</h2>
+                <div class="results-stars" id="results-stars"></div>
+            </div>
+            <div class="results-stats">
+                <div class="result-stat">
+                    <span class="result-number" id="result-score">0</span>
+                    <span class="result-label">ניקוד</span>
+                </div>
+                <div class="result-stat">
+                    <span class="result-number" id="result-correct">0</span>
+                    <span class="result-label">תשובות נכונות</span>
+                </div>
+                <div class="result-stat">
+                    <span class="result-number" id="result-streak">0</span>
+                    <span class="result-label">רצף הכי ארוך</span>
+                </div>
+                <div class="result-stat">
+                    <span class="result-number" id="result-accuracy">0%</span>
+                    <span class="result-label">דיוק</span>
+                </div>
+            </div>
+            <div class="results-words" id="results-words"></div>
+            <div class="results-buttons">
+                <button class="menu-btn primary-btn" id="btn-play-again">
+                    <span class="btn-icon">🔄</span>
+                    <div class="btn-text">
+                        <span class="btn-title">שחק שוב</span>
+                    </div>
+                </button>
+                <button class="menu-btn secondary-btn" id="btn-back-menu">
+                    <span class="btn-icon">🏠</span>
+                    <div class="btn-text">
+                        <span class="btn-title">תפריט ראשי</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Overlay -->
+    <div id="feedback-overlay" class="hidden">
+        <div class="feedback-content" id="feedback-content"></div>
+    </div>
+
+    <!-- 3D Canvas -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="js/words.js"></script>
+    <script src="js/scene.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
