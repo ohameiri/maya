@@ -1,777 +1,348 @@
 /* ============================================
-   English Quest 3D - Application Controller
+   App controller — מאיה
    ============================================ */
 
-(function () {
-    'use strict';
+const SCREENS = ['welcome', 'wizard', 'suggestions', 'plan', 'saved'];
+const $ = (id) => document.getElementById(id);
 
-    // --- Core References ---
-    let scene3D = null;
-    let game = null;
-    let currentQuestion = null;
-    let currentGameMode = null;
+let LAST_FILTERED = [];
+let CURRENT_PLAN = null;
 
-    // --- DOM Elements ---
-    const $ = (id) => document.getElementById(id);
-    const loadingScreen = $('loading-screen');
-    const loaderProgress = $('loader-progress');
-    const mainMenu = $('main-menu');
-    const gameHud = $('game-hud');
-    const feedbackOverlay = $('feedback-overlay');
-    const feedbackContent = $('feedback-content');
-    const resultsScreen = $('results-screen');
+function showScreen(name) {
+    SCREENS.forEach(s => {
+        const el = $('screen-' + s);
+        if (el) el.classList.toggle('hidden', s !== name);
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
-    // Game UI panels
-    const wordMatchUI = $('word-match-ui');
-    const spellingUI = $('spelling-ui');
-    const sentenceUI = $('sentence-ui');
-    const speedUI = $('speed-ui');
+function toast(message) {
+    const el = $('toast');
+    el.textContent = message;
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), 2200);
+}
 
-    // HUD elements
-    const gameScore = $('game-score');
-    const comboDisplay = $('combo-display');
-    const comboValue = $('combo-value');
-    const timerDisplay = $('timer-display');
-    const timerValue = $('timer-value');
-    const streakFire = $('streak-fire');
-    const streakValue = $('streak-value');
-    const progressFill = $('progress-fill');
-    const progressText = $('progress-text');
+/* ---------- Suggestions ---------- */
+function showSuggestions(state) {
+    const profile = {
+        ages: state.ages,
+        stroller: state.stroller,
+        pet: state.pet,
+        limits: state.limits
+    };
+    const prefs = {
+        region: state.region,
+        type: state.type,
+        date: state.date,
+        time: state.time,
+        duration: state.duration
+    };
+    LAST_FILTERED = filterTrails(profile, prefs);
+    renderSuggestions(profile, prefs);
+    showScreen('suggestions');
+}
 
-    // Menu elements
-    const totalScoreEl = $('total-score');
-    const wordsLearnedEl = $('words-learned');
-    const currentLevelEl = $('current-level');
-
-    // --- Audio Context for Sound Effects ---
-    let audioCtx = null;
-
-    function getAudioContext() {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        return audioCtx;
+function renderSuggestions(profile, prefs) {
+    const grid = $('suggestions-grid');
+    const sub = $('suggestions-sub');
+    if (LAST_FILTERED.length === 0) {
+        grid.innerHTML = `
+            <div class="glass" style="padding:30px;text-align:center;grid-column:1/-1">
+                <p style="font-size:1.1rem;color:var(--ink-soft);margin-bottom:14px">
+                    לא מצאנו מסלול שעונה על כל ההגדרות 😬
+                </p>
+                <p style="color:var(--ink-mute)">נסה להוריד מגבלה אחת או לשנות אזור.</p>
+            </div>`;
+        sub.textContent = '';
+        return;
     }
+    const count = LAST_FILTERED.length;
+    sub.textContent = `מצאנו ${count} מסלולים שמתאימים. לחץ/י על אחד כדי לבנות לו תוכנית מלאה.`;
+    grid.innerHTML = LAST_FILTERED.map((entry, idx) => {
+        const t = entry.trail;
+        const reasonTags = entry.reasons
+            .slice(0, 3)
+            .map(r => `<span class="tag ${r.kind}">${r.tag}</span>`)
+            .join('');
+        return `
+            <div class="suggestion-card" data-idx="${idx}">
+                <div class="sc-region">${t.regionName}</div>
+                <div class="sc-name">${t.name}</div>
+                <div class="sc-desc">${truncate(t.description, 110)}</div>
+                <div class="sc-meta">
+                    <span>📏 ${t.distance_km} ק"מ</span>
+                    <span>⛰ ${t.ascent_m} מ' עלייה</span>
+                    <span>⏱ ${formatDuration(t.duration_min)}</span>
+                    <span>${'🟢'.repeat(t.difficulty)}${'⚪'.repeat(5 - t.difficulty)}</span>
+                </div>
+                <div class="sc-tags">${reasonTags}</div>
+                <div class="sc-pick">לתכנן את הטיול הזה →</div>
+            </div>`;
+    }).join('');
 
-    function playTone(frequency, duration, type = 'sine', volume = 0.15) {
-        try {
-            const ctx = getAudioContext();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-
-            osc.type = type;
-            osc.frequency.setValueAtTime(frequency, ctx.currentTime);
-            gain.gain.setValueAtTime(volume, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start(ctx.currentTime);
-            osc.stop(ctx.currentTime + duration);
-        } catch (e) {
-            // Audio not available
-        }
-    }
-
-    function playCorrectSound() {
-        playTone(523.25, 0.1, 'sine', 0.12);
-        setTimeout(() => playTone(659.25, 0.1, 'sine', 0.12), 100);
-        setTimeout(() => playTone(783.99, 0.15, 'sine', 0.12), 200);
-    }
-
-    function playWrongSound() {
-        playTone(200, 0.15, 'square', 0.08);
-        setTimeout(() => playTone(180, 0.2, 'square', 0.08), 150);
-    }
-
-    function playClickSound() {
-        playTone(800, 0.05, 'sine', 0.06);
-    }
-
-    function playComboSound() {
-        playTone(523.25, 0.08, 'sine', 0.1);
-        setTimeout(() => playTone(659.25, 0.08, 'sine', 0.1), 80);
-        setTimeout(() => playTone(783.99, 0.08, 'sine', 0.1), 160);
-        setTimeout(() => playTone(1046.50, 0.15, 'sine', 0.1), 240);
-    }
-
-    function playGameOverSound() {
-        playTone(784, 0.2, 'sine', 0.1);
-        setTimeout(() => playTone(659, 0.2, 'sine', 0.1), 200);
-        setTimeout(() => playTone(523, 0.3, 'sine', 0.1), 400);
-    }
-
-    function playStarSound(index) {
-        const notes = [523.25, 659.25, 783.99];
-        setTimeout(() => playTone(notes[index] || 523, 0.3, 'sine', 0.1), index * 300);
-    }
-
-    // --- Particle Effects ---
-    function createParticles(x, y, color, count = 12) {
-        for (let i = 0; i < count; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-            const size = 4 + Math.random() * 8;
-            const dx = (Math.random() - 0.5) * 200;
-            const dy = (Math.random() - 0.5) * 200 - 50;
-
-            particle.style.cssText = `
-                width: ${size}px;
-                height: ${size}px;
-                background: ${color};
-                left: ${x}px;
-                top: ${y}px;
-                --dx: ${dx}px;
-                --dy: ${dy}px;
-                box-shadow: 0 0 ${size}px ${color};
-            `;
-
-            document.body.appendChild(particle);
-            setTimeout(() => particle.remove(), 1000);
-        }
-    }
-
-    function showScorePopup(x, y, points) {
-        const popup = document.createElement('div');
-        popup.className = 'score-popup';
-        popup.textContent = `+${points}`;
-        popup.style.left = `${x}px`;
-        popup.style.top = `${y}px`;
-        document.body.appendChild(popup);
-        setTimeout(() => popup.remove(), 1000);
-    }
-
-    // --- Feedback ---
-    function showFeedback(correct, correctAnswer) {
-        feedbackOverlay.classList.remove('hidden');
-
-        if (correct) {
-            feedbackContent.innerHTML = `
-                <span class="feedback-correct">✓</span>
-                <span class="feedback-text feedback-correct">!נכון</span>
-            `;
-        } else {
-            feedbackContent.innerHTML = `
-                <span class="feedback-wrong">✗</span>
-                <span class="feedback-text feedback-wrong">${correctAnswer || ''} :התשובה הנכונה</span>
-            `;
-        }
-
-        setTimeout(() => {
-            feedbackOverlay.classList.add('hidden');
-        }, 800);
-    }
-
-    // --- Screen Management ---
-    function hideAllScreens() {
-        mainMenu.classList.add('hidden');
-        gameHud.classList.add('hidden');
-        wordMatchUI.classList.add('hidden');
-        spellingUI.classList.add('hidden');
-        sentenceUI.classList.add('hidden');
-        speedUI.classList.add('hidden');
-        resultsScreen.classList.add('hidden');
-    }
-
-    function showScreen(screen) {
-        hideAllScreens();
-        screen.classList.remove('hidden');
-    }
-
-    function showMainMenu() {
-        hideAllScreens();
-        mainMenu.classList.remove('hidden');
-        if (scene3D) scene3D.setTheme('menu');
-
-        // Update menu stats
-        totalScoreEl.textContent = game.totalScore.toLocaleString();
-        wordsLearnedEl.textContent = game.wordsLearned;
-        currentLevelEl.textContent = game.level;
-    }
-
-    // --- HUD Updates ---
-    function updateHUD() {
-        gameScore.textContent = game.score.toLocaleString();
-        streakValue.textContent = game.streak;
-
-        // Combo display
-        if (game.combo > 1) {
-            comboDisplay.classList.remove('hidden');
-            comboValue.textContent = `x${game.combo}`;
-        } else {
-            comboDisplay.classList.add('hidden');
-        }
-
-        // Streak fire animation
-        if (game.streak >= 3) {
-            streakFire.classList.add('active');
-            setTimeout(() => streakFire.classList.remove('active'), 400);
-        }
-
-        // Progress
-        const progress = game.getProgress();
-        progressFill.style.width = `${progress.percentage}%`;
-        progressText.textContent = `${progress.current}/${progress.total}`;
-    }
-
-    // --- Game Mode: Word Match ---
-    function startWordMatch() {
-        currentGameMode = 'match';
-        const question = game.startGame('match');
-        if (!question) return;
-
-        hideAllScreens();
-        gameHud.classList.remove('hidden');
-        wordMatchUI.classList.remove('hidden');
-        timerDisplay.classList.add('hidden');
-        if (scene3D) scene3D.setTheme('game-match');
-
-        updateHUD();
-        renderMatchQuestion(question);
-    }
-
-    function renderMatchQuestion(question) {
-        currentQuestion = question;
-
-        $('match-word').textContent = question.word;
-        $('match-phonetic').textContent = question.phonetic;
-
-        const optionsGrid = $('match-options');
-        optionsGrid.innerHTML = '';
-
-        question.options.forEach(option => {
-            const btn = document.createElement('button');
-            btn.className = 'option-btn';
-            btn.textContent = option;
-            btn.addEventListener('click', (e) => handleMatchAnswer(option, btn, e));
-            optionsGrid.appendChild(btn);
+    grid.querySelectorAll('.suggestion-card').forEach(card => {
+        card.addEventListener('click', async () => {
+            const idx = Number(card.dataset.idx);
+            const trail = LAST_FILTERED[idx].trail;
+            await openPlan(trail, profile, prefs);
         });
+    });
+}
 
-        // Animate card entrance
-        const card = wordMatchUI.querySelector('.game-card');
-        card.style.animation = 'none';
-        card.offsetHeight; // trigger reflow
-        card.style.animation = 'float 3s ease-in-out infinite';
+/* ---------- Plan ---------- */
+async function openPlan(trail, profile, prefs) {
+    showScreen('plan');
+    // Show loading skeleton
+    $('plan-explain').innerHTML = `<div class="loading-line"><div class="spinner"></div> בונה את התוכנית — מושך מזג אוויר חי...</div>`;
+    $('card-trail').innerHTML = '';
+    $('card-weather').innerHTML = '';
+    $('card-restaurant').innerHTML = '';
+    $('card-equipment').innerHTML = '';
+
+    try {
+        const plan = await buildPlan(trail, profile, prefs);
+        CURRENT_PLAN = plan;
+        renderPlan(plan);
+    } catch (err) {
+        console.error(err);
+        $('plan-explain').innerHTML = `⚠️ לא הצלחנו לטעון את מזג האוויר. נסה שוב או בחר תאריך אחר.`;
     }
+}
 
-    function handleMatchAnswer(answer, btn, event) {
-        if (!game.isAnswering) return;
+function renderPlan(plan) {
+    $('plan-explain').innerHTML = plan.explanation;
+    $('card-trail').innerHTML = renderTrailCard(plan);
+    $('card-weather').innerHTML = renderWeatherCard(plan);
+    $('card-restaurant').innerHTML = renderRestaurantCard(plan);
+    $('card-equipment').innerHTML = renderEquipmentCard(plan);
+    bindEquipmentCheckboxes();
+}
 
-        const result = game.processAnswer(answer, currentQuestion);
-        const rect = btn.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
+function renderTrailCard(plan) {
+    const t = plan.trail;
+    const pips = Array.from({ length: 5 }, (_, i) =>
+        `<span class="pip ${i < t.difficulty ? 'on' : ''}"></span>`
+    ).join('');
+    return `
+        <div class="card-title">🥾 המסלול</div>
+        <div class="trail-hero">
+            <div>
+                <div class="trail-name">${t.name}</div>
+                <div class="trail-region">${t.regionName}</div>
+            </div>
+            <div class="trail-difficulty" title="דרגת קושי">
+                ${pips}
+            </div>
+        </div>
+        <div class="trail-stats">
+            <div class="trail-stat"><div class="v">${t.distance_km}</div><div class="l">ק"מ</div></div>
+            <div class="trail-stat"><div class="v">${t.ascent_m}</div><div class="l">מ' עלייה</div></div>
+            <div class="trail-stat"><div class="v">${formatDuration(t.duration_min)}</div><div class="l">משך</div></div>
+            <div class="trail-stat"><div class="v">${t.flags.circular ? 'מעגלי' : 'לינארי'}</div><div class="l">סוג</div></div>
+        </div>
+        <p class="trail-desc">${t.description}</p>
+        <div class="trail-actions">
+            <a class="waze-btn" href="${wazeLink(t.start.lat, t.start.lon)}" target="_blank" rel="noopener">
+                <span class="wi">🧭</span> Waze לנקודת התחלה
+            </a>
+            ${t.flags.circular ? '' : `
+                <a class="waze-btn" href="${wazeLink(t.end.lat, t.end.lon)}" target="_blank" rel="noopener">
+                    <span class="wi">🏁</span> Waze לנקודת סיום
+                </a>`}
+        </div>
+    `;
+}
 
-        // Disable all buttons
-        const buttons = $('match-options').querySelectorAll('.option-btn');
-        buttons.forEach(b => b.style.pointerEvents = 'none');
+function renderWeatherCard(plan) {
+    const w = plan.weather;
+    const hourly = w.hourly.map(h => `
+        <div class="hr">
+            <div class="h">${String(h.hour).padStart(2,'0')}:00</div>
+            <div class="t">${h.temp}°</div>
+            ${h.precip > 10 ? `<div class="p">${h.precip}%</div>` : '<div class="p">&nbsp;</div>'}
+        </div>
+    `).join('');
+    const alerts = w.alerts.length
+        ? `<div class="weather-alert">${w.alerts.join('<br>')}</div>`
+        : '';
+    return `
+        <div class="card-title">🌤️ מזג אוויר ל-${prettyDate(plan.prefs.date)}</div>
+        <div class="weather-now">
+            <div class="w-icon">${w.icon}</div>
+            <div>
+                <div class="w-temp">${w.maxTemp}° / ${w.minTemp}°</div>
+                <div class="w-meta">${w.label}</div>
+            </div>
+        </div>
+        <div class="weather-grid">
+            <div class="wg"><div class="v">${w.precipMax}%</div><div class="l">סיכוי גשם</div></div>
+            <div class="wg"><div class="v">${w.wind}</div><div class="l">רוח קמ"ש</div></div>
+            <div class="wg"><div class="v">UV ${w.uv}</div><div class="l">קרינה</div></div>
+        </div>
+        <div class="w-meta" style="margin-bottom:10px">🌅 ${w.sunrise} · 🌇 ${w.sunset}</div>
+        <div class="weather-hourly">${hourly}</div>
+        ${alerts}
+    `;
+}
 
-        if (result.correct) {
-            btn.classList.add('correct');
-            playCorrectSound();
-            createParticles(cx, cy, '#55efc4', 15);
-            showScorePopup(cx, cy - 30, result.points);
-            if (scene3D) scene3D.triggerCorrectEffect();
-            if (result.combo > 1) {
-                playComboSound();
-                if (scene3D) scene3D.triggerComboEffect();
-            }
-        } else {
-            btn.classList.add('wrong');
-            playWrongSound();
-            createParticles(cx, cy, '#ff7675', 8);
-            if (scene3D) scene3D.triggerWrongEffect();
-            // Highlight correct
-            buttons.forEach(b => {
-                if (b.textContent === result.correctAnswer) b.classList.add('correct');
-            });
-        }
-
-        showFeedback(result.correct, result.correctAnswer);
-        updateHUD();
-
-        setTimeout(() => {
-            const next = game.getNextQuestion();
-            if (next) {
-                renderMatchQuestion(next);
-            } else {
-                showResults();
-            }
-        }, 1200);
+function renderRestaurantCard(plan) {
+    const r = plan.restaurant;
+    if (!r) {
+        return `<div class="card-title">🍽️ מסעדה לסיום</div><p style="color:var(--ink-soft)">לא מצאנו המלצה מתאימה באזור.</p>`;
     }
+    const distance = r.distance ? `<span>📍 ${r.distance.toFixed(1)} ק"מ מסיום המסלול</span>` : '';
+    const phoneNum = r.phone.replace(/[^0-9]/g, '');
+    return `
+        <div class="card-title">🍽️ מסעדה לסיום</div>
+        <div class="rest-name">${r.name}</div>
+        <div class="rest-cuisine">${r.cuisine}</div>
+        <div class="rest-meta">
+            ${distance}
+            <span>🕒 ${r.hours}</span>
+            ${r.kosher ? '<span>✡ כשר</span>' : ''}
+            ${r.kidFriendly ? '<span>👶 ידידותי לילדים</span>' : ''}
+            ${r.vegan ? '<span>🌱 אופציות טבעוניות</span>' : ''}
+            <span>${'💰'.repeat(r.priceTier)}</span>
+        </div>
+        <p class="rest-desc">${r.notes}</p>
+        <div class="rest-actions">
+            <a class="waze-btn" href="${wazeLink(r.lat, r.lon)}" target="_blank" rel="noopener">
+                <span class="wi">🧭</span> Waze למסעדה
+            </a>
+            <a class="call-btn" href="tel:${phoneNum}">
+                <span>📞</span> ${r.phone}
+            </a>
+        </div>
+    `;
+}
 
-    // --- Game Mode: Spelling ---
-    let spellingSlots = [];
-    let spellingLetterBtns = [];
+function renderEquipmentCard(plan) {
+    const groups = plan.equipment;
+    const groupsHtml = groups.map(g => `
+        <div class="eq-group">
+            <h4>${g.title}</h4>
+            <ul class="eq-list">
+                ${g.items.map((it, idx) => `
+                    <li class="eq-item ${it.urgent ? 'urgent' : ''}">
+                        <input type="checkbox" data-eq="${g.title}-${idx}">
+                        <label>${it.name}</label>
+                        ${it.reason ? `<span class="eq-reason">${it.reason}</span>` : ''}
+                    </li>
+                `).join('')}
+            </ul>
+        </div>
+    `).join('');
+    return `
+        <div class="card-title">🧳 רשימת הציוד</div>
+        <div class="eq-groups">${groupsHtml}</div>
+        <p style="margin-top:14px;color:var(--ink-mute);font-size:0.85rem">
+            הרשימה התאמנו לפי הפרופיל שלך, מזג האוויר וסוג המסלול. סימון מציין שזה חיוני מאוד.
+        </p>
+    `;
+}
 
-    function startSpelling() {
-        currentGameMode = 'spelling';
-        const question = game.startGame('spelling');
-        if (!question) return;
-
-        hideAllScreens();
-        gameHud.classList.remove('hidden');
-        spellingUI.classList.remove('hidden');
-        timerDisplay.classList.add('hidden');
-        if (scene3D) scene3D.setTheme('game-spell');
-
-        updateHUD();
-        renderSpellingQuestion(question);
-    }
-
-    function renderSpellingQuestion(question) {
-        currentQuestion = question;
-        spellingSlots = [];
-
-        $('spell-hebrew').textContent = question.hebrew;
-        $('spell-hint').textContent = question.hint;
-
-        // Create letter slots
-        const slotsContainer = $('letter-slots');
-        slotsContainer.innerHTML = '';
-        for (let i = 0; i < question.correct.length; i++) {
-            const slot = document.createElement('div');
-            slot.className = 'letter-slot';
-            slot.dataset.index = i;
-            slot.addEventListener('click', () => removeLetterFromSlot(i));
-            slotsContainer.appendChild(slot);
-            spellingSlots.push({ element: slot, letter: '' });
-        }
-
-        // Create letter bank
-        const bankContainer = $('letter-bank');
-        bankContainer.innerHTML = '';
-        spellingLetterBtns = [];
-        question.letters.forEach((letter, i) => {
-            const btn = document.createElement('button');
-            btn.className = 'letter-btn';
-            btn.textContent = letter;
-            btn.dataset.index = i;
-            btn.addEventListener('click', () => addLetterToSlot(letter, i));
-            bankContainer.appendChild(btn);
-            spellingLetterBtns.push(btn);
+function bindEquipmentCheckboxes() {
+    document.querySelectorAll('.eq-item input[type=checkbox]').forEach(cb => {
+        cb.addEventListener('change', () => {
+            cb.closest('.eq-item').classList.toggle('checked', cb.checked);
         });
+    });
+}
+
+/* ---------- Saved trips ---------- */
+function renderSavedScreen() {
+    const list = loadSavedTrips();
+    const wrap = $('saved-list');
+    if (list.length === 0) {
+        wrap.innerHTML = `<div class="saved-empty glass" style="grid-column:1/-1;padding:30px">
+            עדיין לא שמרת אף טיול. תכנן אחד וסמן "שמור" 🌿
+        </div>`;
+        return;
     }
+    wrap.innerHTML = list.map(it => `
+        <div class="saved-item glass" data-id="${it.id}">
+            <div class="si-date">${prettyDate(it.prefs.date)} · נשמר ${prettyDateTime(it.savedAt)}</div>
+            <div class="si-name">${it.trail.name}</div>
+            <div class="si-region">${it.trail.regionName} · ${it.restaurant ? it.restaurant.name : 'ללא מסעדה'}</div>
+            <div class="saved-actions">
+                <button data-action="open">פתח שוב</button>
+                <button data-action="delete">מחק</button>
+            </div>
+        </div>
+    `).join('');
 
-    function addLetterToSlot(letter, bankIndex) {
-        // Find first empty slot
-        const emptySlot = spellingSlots.find(s => s.letter === '');
-        if (!emptySlot) return;
-
-        playClickSound();
-        emptySlot.letter = letter;
-        emptySlot.element.textContent = letter;
-        emptySlot.element.classList.add('filled');
-        emptySlot.bankIndex = bankIndex;
-
-        spellingLetterBtns[bankIndex].classList.add('used');
-    }
-
-    function removeLetterFromSlot(index) {
-        const slot = spellingSlots[index];
-        if (!slot || slot.letter === '') return;
-
-        playClickSound();
-        if (slot.bankIndex !== undefined) {
-            spellingLetterBtns[slot.bankIndex].classList.remove('used');
-        }
-        slot.letter = '';
-        slot.element.textContent = '';
-        slot.element.classList.remove('filled');
-        slot.bankIndex = undefined;
-    }
-
-    function clearSpelling() {
-        spellingSlots.forEach((slot, i) => removeLetterFromSlot(i));
-    }
-
-    function checkSpelling() {
-        const answer = spellingSlots.map(s => s.letter).join('');
-        if (answer.length !== currentQuestion.correct.length) return;
-        if (spellingSlots.some(s => s.letter === '')) return;
-
-        const result = game.processSpellingAnswer(answer, currentQuestion);
-
-        // Animate each letter
-        spellingSlots.forEach((slot, i) => {
-            setTimeout(() => {
-                if (answer[i].toLowerCase() === currentQuestion.correct[i].toLowerCase()) {
-                    slot.element.classList.add('correct-letter');
-                } else {
-                    slot.element.classList.add('wrong-letter');
-                }
-            }, i * 100);
+    wrap.querySelectorAll('.saved-item').forEach(card => {
+        const id = card.dataset.id;
+        const entry = list.find(t => t.id === id);
+        card.querySelector('[data-action=open]').addEventListener('click', async () => {
+            await openPlan(entry.trail, entry.profile, entry.prefs);
         });
-
-        if (result.correct) {
-            playCorrectSound();
-            const slotsEl = $('letter-slots');
-            const rect = slotsEl.getBoundingClientRect();
-            createParticles(rect.left + rect.width / 2, rect.top, '#55efc4', 20);
-            showScorePopup(rect.left + rect.width / 2, rect.top - 20, result.points);
-            if (scene3D) scene3D.triggerCorrectEffect();
-            if (result.combo > 1) {
-                playComboSound();
-                if (scene3D) scene3D.triggerComboEffect();
-            }
-        } else {
-            playWrongSound();
-            if (scene3D) scene3D.triggerWrongEffect();
-        }
-
-        showFeedback(result.correct, result.correctAnswer);
-        updateHUD();
-
-        setTimeout(() => {
-            const next = game.getNextQuestion();
-            if (next) {
-                renderSpellingQuestion(next);
-            } else {
-                showResults();
-            }
-        }, 1500);
-    }
-
-    // --- Game Mode: Sentence Completion ---
-    function startSentence() {
-        currentGameMode = 'sentence';
-        const question = game.startGame('sentence');
-        if (!question) return;
-
-        hideAllScreens();
-        gameHud.classList.remove('hidden');
-        sentenceUI.classList.remove('hidden');
-        timerDisplay.classList.add('hidden');
-        if (scene3D) scene3D.setTheme('game-sentence');
-
-        updateHUD();
-        renderSentenceQuestion(question);
-    }
-
-    function renderSentenceQuestion(question) {
-        currentQuestion = question;
-
-        // Replace blank in sentence
-        const sentenceHTML = question.sentence.replace('___',
-            '<span class="sentence-blank">?</span>'
-        );
-        $('sentence-text').innerHTML = sentenceHTML;
-        $('sentence-hebrew').textContent = question.sentenceHe;
-
-        const optionsGrid = $('sentence-options');
-        optionsGrid.innerHTML = '';
-
-        question.options.forEach(option => {
-            const btn = document.createElement('button');
-            btn.className = 'option-btn english-option';
-            btn.textContent = option;
-            btn.addEventListener('click', (e) => handleSentenceAnswer(option, btn, e));
-            optionsGrid.appendChild(btn);
-        });
-    }
-
-    function handleSentenceAnswer(answer, btn, event) {
-        if (!game.isAnswering) return;
-
-        const result = game.processAnswer(answer, currentQuestion);
-        const rect = btn.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-
-        const buttons = $('sentence-options').querySelectorAll('.option-btn');
-        buttons.forEach(b => b.style.pointerEvents = 'none');
-
-        if (result.correct) {
-            btn.classList.add('correct');
-            playCorrectSound();
-            createParticles(cx, cy, '#55efc4', 15);
-            showScorePopup(cx, cy - 30, result.points);
-            // Update the blank in the sentence
-            const blank = sentenceUI.querySelector('.sentence-blank');
-            if (blank) {
-                blank.textContent = answer;
-                blank.style.color = '#55efc4';
-            }
-            if (scene3D) scene3D.triggerCorrectEffect();
-            if (result.combo > 1) {
-                playComboSound();
-                if (scene3D) scene3D.triggerComboEffect();
-            }
-        } else {
-            btn.classList.add('wrong');
-            playWrongSound();
-            createParticles(cx, cy, '#ff7675', 8);
-            if (scene3D) scene3D.triggerWrongEffect();
-            buttons.forEach(b => {
-                if (b.textContent === result.correctAnswer) b.classList.add('correct');
-            });
-            const blank = sentenceUI.querySelector('.sentence-blank');
-            if (blank) {
-                blank.textContent = result.correctAnswer;
-                blank.style.color = '#ff7675';
-            }
-        }
-
-        showFeedback(result.correct, result.correctAnswer);
-        updateHUD();
-
-        setTimeout(() => {
-            const next = game.getNextQuestion();
-            if (next) {
-                renderSentenceQuestion(next);
-            } else {
-                showResults();
-            }
-        }, 1200);
-    }
-
-    // --- Game Mode: Speed Challenge ---
-    function startSpeed() {
-        currentGameMode = 'speed';
-        const question = game.startGame('speed');
-        if (!question) return;
-
-        hideAllScreens();
-        gameHud.classList.remove('hidden');
-        speedUI.classList.remove('hidden');
-        timerDisplay.classList.remove('hidden');
-        timerValue.textContent = '60';
-        timerValue.classList.remove('warning');
-        if (scene3D) scene3D.setTheme('game-speed');
-
-        updateHUD();
-        renderSpeedQuestion(question);
-
-        // Start countdown
-        game.startTimer((timeLeft, expired) => {
-            timerValue.textContent = timeLeft;
-            if (timeLeft <= 10) {
-                timerValue.classList.add('warning');
-            }
-            if (expired) {
-                playGameOverSound();
-                showResults();
+        card.querySelector('[data-action=delete]').addEventListener('click', () => {
+            if (confirm('למחוק את הטיול השמור?')) {
+                deleteSavedTrip(id);
+                renderSavedScreen();
+                toast('הטיול נמחק');
             }
         });
-    }
+    });
+}
 
-    function renderSpeedQuestion(question) {
-        currentQuestion = question;
+/* ---------- Utils ---------- */
+function truncate(s, n) {
+    if (!s) return '';
+    return s.length > n ? s.slice(0, n - 1).trim() + '…' : s;
+}
+function formatDuration(min) {
+    if (min < 60) return `${min} דק'`;
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    return m === 0 ? `${h} שע'` : `${h}:${String(m).padStart(2,'0')} שע'`;
+}
+function prettyDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+function prettyDateTime(iso) {
+    const d = new Date(iso);
+    return d.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }) + ' ' +
+           d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+}
 
-        $('speed-word').textContent = question.word;
+/* ---------- Wire up ---------- */
+function init() {
+    wizardInit();
 
-        const optionsContainer = $('speed-options');
-        optionsContainer.innerHTML = '';
+    $('btn-start').addEventListener('click', () => {
+        wizardReset();
+        showScreen('wizard');
+    });
+    $('btn-saved-from-hero').addEventListener('click', () => {
+        renderSavedScreen();
+        showScreen('saved');
+    });
+    $('nav-saved').addEventListener('click', () => {
+        renderSavedScreen();
+        showScreen('saved');
+    });
+    $('brand-home').addEventListener('click', () => showScreen('welcome'));
 
-        question.options.forEach(option => {
-            const btn = document.createElement('button');
-            btn.className = 'option-btn';
-            btn.textContent = option;
-            btn.addEventListener('click', (e) => handleSpeedAnswer(option, btn, e));
-            optionsContainer.appendChild(btn);
-        });
-    }
+    $('btn-back-to-wizard').addEventListener('click', () => showScreen('wizard'));
+    $('btn-back-to-suggestions').addEventListener('click', () => showScreen('suggestions'));
+    $('btn-new-from-saved').addEventListener('click', () => {
+        wizardReset();
+        showScreen('wizard');
+    });
 
-    function handleSpeedAnswer(answer, btn, event) {
-        if (!game.isAnswering) return;
+    $('btn-save-trip').addEventListener('click', () => {
+        if (!CURRENT_PLAN) return;
+        saveTripToStore(CURRENT_PLAN);
+        toast('הטיול נשמר ✨');
+    });
 
-        const result = game.processAnswer(answer, currentQuestion);
-        const rect = btn.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
+    showScreen('welcome');
+}
 
-        if (result.correct) {
-            btn.classList.add('correct');
-            playCorrectSound();
-            createParticles(cx, cy, '#55efc4', 10);
-            showScorePopup(cx, cy - 30, result.points);
-            if (scene3D) scene3D.triggerCorrectEffect();
-            if (result.combo > 1) {
-                playComboSound();
-                if (scene3D) scene3D.triggerComboEffect();
-            }
-        } else {
-            btn.classList.add('wrong');
-            playWrongSound();
-            if (scene3D) scene3D.triggerWrongEffect();
-        }
-
-        updateHUD();
-
-        // Quick transition for speed mode
-        setTimeout(() => {
-            const next = game.getNextQuestion();
-            if (next) {
-                renderSpeedQuestion(next);
-            }
-        }, 400);
-    }
-
-    // --- Results ---
-    function showResults() {
-        game.stopTimer();
-        const results = game.getResults();
-
-        hideAllScreens();
-        resultsScreen.classList.remove('hidden');
-        if (scene3D) scene3D.setTheme('results');
-
-        // Title based on performance
-        const titles = {
-            3: '!מדהים! כל הכבוד',
-            2: '!עבודה טובה',
-            1: '!אל תוותר, נסה שוב'
-        };
-        $('results-title').textContent = titles[results.stars];
-
-        // Stars
-        const starsContainer = $('results-stars');
-        starsContainer.innerHTML = '';
-        for (let i = 0; i < 3; i++) {
-            const star = document.createElement('span');
-            star.className = `star ${i < results.stars ? '' : 'empty'}`;
-            star.textContent = '⭐';
-            starsContainer.appendChild(star);
-            if (i < results.stars) playStarSound(i);
-        }
-
-        // Stats
-        $('result-score').textContent = results.score.toLocaleString();
-        $('result-correct').textContent = `${results.correctCount}/${results.totalQuestions}`;
-        $('result-streak').textContent = results.bestStreak;
-        $('result-accuracy').textContent = `${results.accuracy}%`;
-
-        // Word list
-        const wordsContainer = $('results-words');
-        wordsContainer.innerHTML = '';
-        results.wordResults.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'result-word-item';
-            div.innerHTML = `
-                <span class="result-word-en">${item.word.en}</span>
-                <span class="result-word-he">${item.word.he}</span>
-                <span class="result-word-status">${item.correct ? '✅' : '❌'}</span>
-            `;
-            wordsContainer.appendChild(div);
-        });
-
-        // Update menu stats for next time
-        totalScoreEl.textContent = results.totalScore.toLocaleString();
-        wordsLearnedEl.textContent = results.wordsLearned;
-        currentLevelEl.textContent = results.level;
-    }
-
-    // --- Event Listeners ---
-    function setupEventListeners() {
-        // Difficulty buttons
-        document.querySelectorAll('.diff-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                game.setDifficulty(btn.dataset.level);
-                playClickSound();
-            });
-        });
-
-        // Game mode buttons
-        $('btn-word-match').addEventListener('click', () => { playClickSound(); startWordMatch(); });
-        $('btn-spelling').addEventListener('click', () => { playClickSound(); startSpelling(); });
-        $('btn-sentence').addEventListener('click', () => { playClickSound(); startSentence(); });
-        $('btn-speed').addEventListener('click', () => { playClickSound(); startSpeed(); });
-
-        // HUD back button
-        $('btn-back').addEventListener('click', () => {
-            playClickSound();
-            game.stopTimer();
-            showMainMenu();
-        });
-
-        // Spelling buttons
-        $('btn-clear-spelling').addEventListener('click', () => { playClickSound(); clearSpelling(); });
-        $('btn-check-spelling').addEventListener('click', () => { playClickSound(); checkSpelling(); });
-
-        // Results buttons
-        $('btn-play-again').addEventListener('click', () => {
-            playClickSound();
-            switch (currentGameMode) {
-                case 'match': startWordMatch(); break;
-                case 'spelling': startSpelling(); break;
-                case 'sentence': startSentence(); break;
-                case 'speed': startSpeed(); break;
-                default: showMainMenu();
-            }
-        });
-
-        $('btn-back-menu').addEventListener('click', () => {
-            playClickSound();
-            showMainMenu();
-        });
-
-        // Keyboard support
-        document.addEventListener('keydown', (e) => {
-            if (currentGameMode === 'match' || currentGameMode === 'sentence' || currentGameMode === 'speed') {
-                const key = parseInt(e.key);
-                if (key >= 1 && key <= 4) {
-                    const activeUI = currentGameMode === 'match' ? 'match-options'
-                        : currentGameMode === 'sentence' ? 'sentence-options'
-                        : 'speed-options';
-                    const buttons = $(activeUI).querySelectorAll('.option-btn');
-                    if (buttons[key - 1]) {
-                        buttons[key - 1].click();
-                    }
-                }
-            }
-            if (e.key === 'Escape') {
-                game.stopTimer();
-                showMainMenu();
-            }
-            if (e.key === 'Enter' && currentGameMode === 'spelling') {
-                checkSpelling();
-            }
-        });
-    }
-
-    // --- Loading & Initialization ---
-    function simulateLoading() {
-        let progress = 0;
-        const interval = setInterval(() => {
-            progress += Math.random() * 15 + 5;
-            if (progress >= 100) {
-                progress = 100;
-                clearInterval(interval);
-                loaderProgress.style.width = '100%';
-                setTimeout(() => {
-                    loadingScreen.classList.add('hidden');
-                    mainMenu.classList.remove('hidden');
-                }, 400);
-            }
-            loaderProgress.style.width = `${progress}%`;
-        }, 200);
-    }
-
-    function init() {
-        // Initialize 3D scene
-        const canvas = $('game-canvas');
-        try {
-            scene3D = new Scene3D(canvas);
-        } catch (e) {
-            console.warn('3D scene failed to initialize:', e);
-        }
-
-        // Initialize game engine
-        game = new GameEngine();
-
-        // Setup events
-        setupEventListeners();
-
-        // Start loading
-        simulateLoading();
-    }
-
-    // Start when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
-})();
+document.addEventListener('DOMContentLoaded', init);

@@ -2,235 +2,270 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>English Quest 3D - משחק ללימוד אנגלית</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#1c2419">
+    <title>מאיה — מתכנן הטיולים שלך</title>
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&family=Heebo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Loading Screen -->
-    <div id="loading-screen">
-        <div class="loader-container">
-            <div class="loader-ring">
-                <div class="loader-ring-inner"></div>
-            </div>
-            <h2 class="loader-text">English Quest 3D</h2>
-            <p class="loader-subtitle">...טוען את העולם</p>
-            <div class="loader-bar">
-                <div class="loader-bar-fill" id="loader-progress"></div>
-            </div>
+    <!-- Animated background scene -->
+    <div id="scene-bg" aria-hidden="true">
+        <div class="sky"></div>
+        <div class="sun" id="sun"></div>
+        <svg class="mtn mtn-back" viewBox="0 0 1440 320" preserveAspectRatio="none"><path d="M0,200 L120,140 L240,180 L360,110 L500,170 L640,90 L780,160 L920,100 L1080,170 L1220,120 L1340,180 L1440,150 L1440,320 L0,320 Z"/></svg>
+        <svg class="mtn mtn-mid" viewBox="0 0 1440 320" preserveAspectRatio="none"><path d="M0,230 L100,180 L220,220 L360,140 L500,210 L640,150 L780,210 L920,160 L1080,220 L1220,180 L1340,220 L1440,200 L1440,320 L0,320 Z"/></svg>
+        <svg class="mtn mtn-front" viewBox="0 0 1440 320" preserveAspectRatio="none"><path d="M0,260 L160,210 L320,250 L480,200 L640,250 L800,210 L960,250 L1120,220 L1280,260 L1440,230 L1440,320 L0,320 Z"/></svg>
+        <div class="clouds">
+            <div class="cloud c1"></div>
+            <div class="cloud c2"></div>
+            <div class="cloud c3"></div>
         </div>
     </div>
 
-    <!-- Main Menu -->
-    <div id="main-menu" class="hidden">
-        <div class="menu-overlay"></div>
-        <div class="menu-content">
-            <div class="menu-logo">
-                <h1 class="game-title">
-                    <span class="title-english">English</span>
-                    <span class="title-quest">Quest</span>
-                    <span class="title-3d">3D</span>
+    <!-- Top bar -->
+    <header class="topbar">
+        <div class="brand" id="brand-home">
+            <span class="brand-mark">⛰</span>
+            <span class="brand-name">מאיה</span>
+            <span class="brand-tag">תכנון טיולים חכם</span>
+        </div>
+        <nav class="topnav">
+            <button class="nav-btn" id="nav-saved">
+                <span>📂</span> הטיולים שלי
+            </button>
+        </nav>
+    </header>
+
+    <main id="app">
+
+        <!-- ========== Welcome ========== -->
+        <section class="screen welcome-screen" id="screen-welcome">
+            <div class="welcome-inner">
+                <h1 class="hero-title">
+                    היי, מוכן<span class="dot">.</span> לתכנן טיול<span class="accent">?</span>
                 </h1>
-                <p class="game-subtitle">המסע שלך ללימוד אנגלית מתחיל כאן</p>
+                <p class="hero-sub">
+                    כמה שאלות קצרות — ואנחנו בונים לך יום שלם בישראל, מותאם בדיוק אליך:
+                    מסלול, מסעדה, מזג אוויר חי, רשימת ציוד וקישורי Waze.
+                </p>
+                <div class="hero-chips">
+                    <span class="chip">🩺 מותאם למגבלות אישיות</span>
+                    <span class="chip">🌤️ מזג אוויר חי</span>
+                    <span class="chip">🍽️ מסעדה לסיום</span>
+                    <span class="chip">🧳 רשימת ציוד חכמה</span>
+                    <span class="chip">🚗 Waze מובנה</span>
+                </div>
+                <div class="hero-actions">
+                    <button class="btn btn-primary btn-lg" id="btn-start">בוא נתחיל →</button>
+                    <button class="btn btn-ghost btn-lg" id="btn-saved-from-hero">הטיולים השמורים שלי</button>
+                </div>
             </div>
+        </section>
 
-            <div class="menu-stats">
-                <div class="stat-box">
-                    <span class="stat-number" id="total-score">0</span>
-                    <span class="stat-label">ניקוד כולל</span>
+        <!-- ========== Wizard ========== -->
+        <section class="screen wizard-screen hidden" id="screen-wizard">
+            <div class="wizard-card glass">
+                <div class="wizard-progress">
+                    <div class="wp-fill" id="wp-fill"></div>
+                    <div class="wp-dots" id="wp-dots"></div>
                 </div>
-                <div class="stat-box">
-                    <span class="stat-number" id="words-learned">0</span>
-                    <span class="stat-label">מילים נלמדו</span>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-number" id="current-level">1</span>
-                    <span class="stat-label">רמה</span>
-                </div>
-            </div>
 
-            <div class="menu-buttons">
-                <button class="menu-btn primary-btn" id="btn-word-match">
-                    <span class="btn-icon">🎯</span>
-                    <div class="btn-text">
-                        <span class="btn-title">התאמת מילים</span>
-                        <span class="btn-desc">התאם את המילה באנגלית לתרגום בעברית</span>
+                <!-- Step 1: who -->
+                <div class="step" data-step="1">
+                    <h2 class="step-title">מי בא לטייל?</h2>
+                    <p class="step-sub">נדע להציע מסלול מתאים לכולם.</p>
+
+                    <label class="field-label">טווח גילאים בקבוצה</label>
+                    <div class="chips-row" data-group="ages">
+                        <button class="chip-select" data-value="kids">עם ילדים קטנים</button>
+                        <button class="chip-select" data-value="teens">נוער</button>
+                        <button class="chip-select" data-value="adults">מבוגרים</button>
+                        <button class="chip-select" data-value="seniors">גיל הזהב</button>
                     </div>
-                </button>
-                <button class="menu-btn secondary-btn" id="btn-spelling">
-                    <span class="btn-icon">✏️</span>
-                    <div class="btn-text">
-                        <span class="btn-title">איות מילים</span>
-                        <span class="btn-desc">כתוב את המילה באנגלית לפי התרגום</span>
+
+                    <div class="two-col">
+                        <label class="toggle-card">
+                            <input type="checkbox" id="opt-stroller">
+                            <div>
+                                <div class="tc-title">עגלת תינוק</div>
+                                <div class="tc-sub">נמצא רק שבילים נגישים</div>
+                            </div>
+                        </label>
+                        <label class="toggle-card">
+                            <input type="checkbox" id="opt-pet">
+                            <div>
+                                <div class="tc-title">כלב</div>
+                                <div class="tc-sub">מסלולים שמרשים כלבים</div>
+                            </div>
+                        </label>
                     </div>
-                </button>
-                <button class="menu-btn tertiary-btn" id="btn-sentence">
-                    <span class="btn-icon">📝</span>
-                    <div class="btn-text">
-                        <span class="btn-title">השלמת משפטים</span>
-                        <span class="btn-desc">השלם את המילה החסרה במשפט</span>
+                </div>
+
+                <!-- Step 2: limitations -->
+                <div class="step hidden" data-step="2">
+                    <h2 class="step-title">משהו שכדאי לקחת בחשבון?</h2>
+                    <p class="step-sub">סמנו הכל שרלוונטי — נסנן בהתאם ונוסיף לרשימת הציוד.</p>
+
+                    <div class="two-col">
+                        <label class="toggle-card warm">
+                            <input type="checkbox" data-limit="backPain">
+                            <div>
+                                <div class="tc-title">כואב לי הגב</div>
+                                <div class="tc-sub">מסלול קל, ללא ירידות חדות</div>
+                            </div>
+                        </label>
+                        <label class="toggle-card warm">
+                            <input type="checkbox" data-limit="kneeIssues">
+                            <div>
+                                <div class="tc-title">ברכיים / מפרקים</div>
+                                <div class="tc-sub">בלי מדרגות תלולות</div>
+                            </div>
+                        </label>
+                        <label class="toggle-card warm">
+                            <input type="checkbox" data-limit="walkingDifficulty">
+                            <div>
+                                <div class="tc-title">קושי בהליכה ארוכה</div>
+                                <div class="tc-sub">עד 4 ק"מ</div>
+                            </div>
+                        </label>
+                        <label class="toggle-card warm">
+                            <input type="checkbox" data-limit="heatSensitive">
+                            <div>
+                                <div class="tc-title">רגישות לחום ולשמש</div>
+                                <div class="tc-sub">צל / יציאה מוקדמת</div>
+                            </div>
+                        </label>
+                        <label class="toggle-card warm">
+                            <input type="checkbox" data-limit="asthma">
+                            <div>
+                                <div class="tc-title">אסטמה / מאמץ מוגבל</div>
+                                <div class="tc-sub">ללא עליות חדות</div>
+                            </div>
+                        </label>
+                        <label class="toggle-card warm">
+                            <input type="checkbox" data-limit="vertigo">
+                            <div>
+                                <div class="tc-title">פחד גבהים</div>
+                                <div class="tc-sub">בלי מצוקים חשופים</div>
+                            </div>
+                        </label>
                     </div>
-                </button>
-                <button class="menu-btn quaternary-btn" id="btn-speed">
-                    <span class="btn-icon">⚡</span>
-                    <div class="btn-text">
-                        <span class="btn-title">אתגר מהירות</span>
-                        <span class="btn-desc">כמה מילים תצליח בדקה?</span>
+                </div>
+
+                <!-- Step 3: when -->
+                <div class="step hidden" data-step="3">
+                    <h2 class="step-title">מתי וכמה זמן?</h2>
+                    <p class="step-sub">נמשוך מזג אוויר חי לתאריך הזה.</p>
+
+                    <label class="field-label" for="trip-date">תאריך</label>
+                    <input type="date" id="trip-date" class="text-input">
+
+                    <label class="field-label">משך הטיול</label>
+                    <div class="chips-row" data-group="duration">
+                        <button class="chip-select" data-value="short">קצר (עד שעתיים)</button>
+                        <button class="chip-select" data-value="half">חצי יום</button>
+                        <button class="chip-select" data-value="full">יום מלא</button>
                     </div>
-                </button>
-            </div>
 
-            <div class="difficulty-selector">
-                <span class="diff-label">רמת קושי:</span>
-                <button class="diff-btn active" data-level="beginner">מתחיל</button>
-                <button class="diff-btn" data-level="intermediate">בינוני</button>
-                <button class="diff-btn" data-level="advanced">מתקדם</button>
-            </div>
-        </div>
-    </div>
+                    <label class="field-label">שעת יציאה משוערת</label>
+                    <input type="time" id="trip-time" class="text-input" value="08:00">
+                </div>
 
-    <!-- Game HUD -->
-    <div id="game-hud" class="hidden">
-        <div class="hud-top">
-            <div class="hud-left">
-                <button class="hud-btn" id="btn-back">
-                    <span>◀</span> תפריט
-                </button>
-            </div>
-            <div class="hud-center">
-                <div class="score-display">
-                    <span class="score-label">ניקוד</span>
-                    <span class="score-value" id="game-score">0</span>
-                </div>
-                <div class="combo-display hidden" id="combo-display">
-                    <span class="combo-value" id="combo-value">x2</span>
-                    <span class="combo-label">קומבו!</span>
-                </div>
-            </div>
-            <div class="hud-right">
-                <div class="timer-display" id="timer-display">
-                    <span class="timer-icon">⏱</span>
-                    <span class="timer-value" id="timer-value">60</span>
-                </div>
-                <div class="streak-display">
-                    <span class="streak-fire" id="streak-fire">🔥</span>
-                    <span class="streak-value" id="streak-value">0</span>
-                </div>
-            </div>
-        </div>
-        <div class="hud-progress">
-            <div class="progress-bar">
-                <div class="progress-fill" id="progress-fill"></div>
-            </div>
-            <span class="progress-text" id="progress-text">1/10</span>
-        </div>
-    </div>
+                <!-- Step 4: where & type -->
+                <div class="step hidden" data-step="4">
+                    <h2 class="step-title">איפה ומה הסוג?</h2>
+                    <p class="step-sub">אפשר לדלג ולתת לנו להפתיע.</p>
 
-    <!-- Word Match Game -->
-    <div id="word-match-ui" class="game-ui hidden">
-        <div class="game-card floating">
-            <div class="card-glow"></div>
-            <h2 class="word-display" id="match-word"></h2>
-            <p class="word-phonetic" id="match-phonetic"></p>
-        </div>
-        <div class="options-grid" id="match-options"></div>
-    </div>
-
-    <!-- Spelling Game -->
-    <div id="spelling-ui" class="game-ui hidden">
-        <div class="game-card floating">
-            <div class="card-glow"></div>
-            <h2 class="hebrew-word" id="spell-hebrew"></h2>
-            <p class="word-hint" id="spell-hint"></p>
-        </div>
-        <div class="spelling-area">
-            <div class="letter-slots" id="letter-slots"></div>
-            <div class="letter-bank" id="letter-bank"></div>
-            <div class="spelling-actions">
-                <button class="action-btn" id="btn-clear-spelling">נקה</button>
-                <button class="action-btn primary" id="btn-check-spelling">בדוק</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Sentence Game -->
-    <div id="sentence-ui" class="game-ui hidden">
-        <div class="game-card floating wide">
-            <div class="card-glow"></div>
-            <p class="sentence-display" id="sentence-text"></p>
-            <p class="sentence-hebrew" id="sentence-hebrew"></p>
-        </div>
-        <div class="options-grid" id="sentence-options"></div>
-    </div>
-
-    <!-- Speed Challenge -->
-    <div id="speed-ui" class="game-ui hidden">
-        <div class="speed-word-container">
-            <div class="game-card floating speed-card">
-                <div class="card-glow"></div>
-                <h2 class="word-display" id="speed-word"></h2>
-            </div>
-        </div>
-        <div class="speed-options" id="speed-options"></div>
-    </div>
-
-    <!-- Results Screen -->
-    <div id="results-screen" class="hidden">
-        <div class="results-container">
-            <div class="results-header">
-                <h2 class="results-title" id="results-title">כל הכבוד!</h2>
-                <div class="results-stars" id="results-stars"></div>
-            </div>
-            <div class="results-stats">
-                <div class="result-stat">
-                    <span class="result-number" id="result-score">0</span>
-                    <span class="result-label">ניקוד</span>
-                </div>
-                <div class="result-stat">
-                    <span class="result-number" id="result-correct">0</span>
-                    <span class="result-label">תשובות נכונות</span>
-                </div>
-                <div class="result-stat">
-                    <span class="result-number" id="result-streak">0</span>
-                    <span class="result-label">רצף הכי ארוך</span>
-                </div>
-                <div class="result-stat">
-                    <span class="result-number" id="result-accuracy">0%</span>
-                    <span class="result-label">דיוק</span>
-                </div>
-            </div>
-            <div class="results-words" id="results-words"></div>
-            <div class="results-buttons">
-                <button class="menu-btn primary-btn" id="btn-play-again">
-                    <span class="btn-icon">🔄</span>
-                    <div class="btn-text">
-                        <span class="btn-title">שחק שוב</span>
+                    <label class="field-label">אזור</label>
+                    <div class="chips-row chips-grid" data-group="region">
+                        <button class="chip-select" data-value="any">מפתיע אותי ✨</button>
+                        <button class="chip-select" data-value="galilee">גליל</button>
+                        <button class="chip-select" data-value="golan">גולן</button>
+                        <button class="chip-select" data-value="carmel">כרמל</button>
+                        <button class="chip-select" data-value="center">מרכז</button>
+                        <button class="chip-select" data-value="jerusalem">ירושלים והרי יהודה</button>
+                        <button class="chip-select" data-value="deadSea">ים המלח</button>
+                        <button class="chip-select" data-value="negev">נגב</button>
+                        <button class="chip-select" data-value="eilat">אילת והערבה</button>
                     </div>
-                </button>
-                <button class="menu-btn secondary-btn" id="btn-back-menu">
-                    <span class="btn-icon">🏠</span>
-                    <div class="btn-text">
-                        <span class="btn-title">תפריט ראשי</span>
+
+                    <label class="field-label">סוג הטיול</label>
+                    <div class="chips-row chips-grid" data-group="type">
+                        <button class="chip-select" data-value="any">מה שמתאים</button>
+                        <button class="chip-select" data-value="water">מים ומעיינות 💧</button>
+                        <button class="chip-select" data-value="forest">יער וצל 🌳</button>
+                        <button class="chip-select" data-value="desert">מדבר ופנורמה 🏜️</button>
+                        <button class="chip-select" data-value="archaeology">היסטוריה ועתיקות 🏛️</button>
+                        <button class="chip-select" data-value="coast">חוף וים 🌊</button>
                     </div>
-                </button>
+                </div>
+
+                <!-- Wizard nav -->
+                <div class="wizard-nav">
+                    <button class="btn btn-ghost" id="btn-prev">חזרה</button>
+                    <button class="btn btn-primary" id="btn-next">הבא →</button>
+                </div>
             </div>
-        </div>
-    </div>
+        </section>
 
-    <!-- Feedback Overlay -->
-    <div id="feedback-overlay" class="hidden">
-        <div class="feedback-content" id="feedback-content"></div>
-    </div>
+        <!-- ========== Suggestions ========== -->
+        <section class="screen suggestions-screen hidden" id="screen-suggestions">
+            <div class="section-head">
+                <h2 class="section-title">בחרנו לך כמה אפשרויות 🎯</h2>
+                <p class="section-sub" id="suggestions-sub">סיננו לפי הצרכים שלך — בחר/י את מה שמתאים ונבנה תוכנית מלאה.</p>
+            </div>
+            <div class="suggestions-grid" id="suggestions-grid"></div>
+            <div class="section-foot">
+                <button class="btn btn-ghost" id="btn-back-to-wizard">← לשנות פרטים</button>
+            </div>
+        </section>
 
-    <!-- 3D Canvas -->
-    <canvas id="game-canvas"></canvas>
+        <!-- ========== Plan ========== -->
+        <section class="screen plan-screen hidden" id="screen-plan">
+            <div class="plan-head">
+                <button class="btn btn-ghost small" id="btn-back-to-suggestions">← להצעות אחרות</button>
+                <button class="btn btn-primary small" id="btn-save-trip">💾 שמור טיול</button>
+            </div>
+
+            <div class="plan-explain glass" id="plan-explain"></div>
+
+            <div class="plan-grid">
+                <article class="plan-card glass span-2" id="card-trail"></article>
+                <article class="plan-card glass" id="card-weather"></article>
+                <article class="plan-card glass" id="card-restaurant"></article>
+                <article class="plan-card glass span-2" id="card-equipment"></article>
+            </div>
+        </section>
+
+        <!-- ========== Saved trips ========== -->
+        <section class="screen saved-screen hidden" id="screen-saved">
+            <div class="section-head">
+                <h2 class="section-title">הטיולים השמורים שלי 📂</h2>
+                <p class="section-sub">לוחצים על טיול כדי לפתוח אותו שוב.</p>
+            </div>
+            <div class="saved-list" id="saved-list"></div>
+            <div class="section-foot">
+                <button class="btn btn-primary" id="btn-new-from-saved">+ תכנן טיול חדש</button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Toasts -->
+    <div id="toast"></div>
 
     <!-- Scripts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="js/words.js"></script>
+    <script src="js/profile.js"></script>
+    <script src="js/trails.js"></script>
+    <script src="js/restaurants.js"></script>
+    <script src="js/equipment.js"></script>
+    <script src="js/weather.js"></script>
+    <script src="js/planner.js"></script>
+    <script src="js/wizard.js"></script>
     <script src="js/scene.js"></script>
-    <script src="js/game.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
