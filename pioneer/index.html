@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pioneer VTOL 3D</title>
+<style>
+  :root { --bg:#eef0f3; --panel:rgba(255,255,255,.92); --text:#1d2330; --muted:#667085; --line:#d7dbe2; --accent:#2563eb; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#12151b; --panel:rgba(26,30,38,.92); --text:#e6e9ef; --muted:#9aa3b2; --line:#2f3542; --accent:#60a5fa; } }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font:14px/1.4 system-ui, -apple-system, Segoe UI, sans-serif; overflow:hidden; }
+  #view { position:fixed; inset:0; }
+  #panel { position:fixed; top:12px; left:12px; width:300px; max-height:calc(100% - 24px); overflow:auto; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 14px; backdrop-filter:blur(6px); }
+  h1 { font-size:17px; margin:0 0 2px; } .sub { color:var(--muted); font-size:12px; margin-bottom:10px; }
+  .row { display:flex; align-items:center; gap:8px; margin:6px 0; } .row label { flex:1; }
+  input[type=range] { width:100%; }
+  details { border-top:1px solid var(--line); padding:6px 0; } summary { cursor:pointer; font-weight:600; }
+  .part { display:flex; gap:6px; align-items:center; padding:2px 0 2px 4px; font-size:13px; cursor:pointer; border-radius:4px; }
+  .part:hover { background:rgba(127,127,127,.12); } .part.sel { background:rgba(37,99,235,.18); }
+  .tag { font-size:10px; color:var(--muted); margin-left:auto; }
+  #info { position:fixed; right:12px; bottom:12px; max-width:320px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:12px; color:var(--muted); }
+  #info b { color:var(--text); }
+  button { font:inherit; padding:4px 10px; border:1px solid var(--line); border-radius:6px; background:transparent; color:var(--text); cursor:pointer; }
+  #toggle { display:none; }
+  @media (max-width:640px) {
+    #panel { left:8px; right:8px; width:auto; top:auto; bottom:8px; max-height:45%; }
+    #info { display:none; } #toggle { display:inline-block; }
+  }
+</style>
+</head>
+<body>
+<div id="view"></div>
+<div id="panel">
+  <h1>MFE Pioneer VTOL</h1>
+  <div class="sub">Span 3.20 m · Length 1.68 m · 24 kg · 4+1 VTOL</div>
+  <div class="row"><label for="explode">Exploded view</label></div>
+  <input id="explode" type="range" min="0" max="1" step="0.01" value="0">
+  <div class="row"><input type="checkbox" id="spin"><label for="spin">Spin propellers</label></div>
+  <div class="row"><input type="checkbox" id="srcColor"><label for="srcColor">Colour by source (CAD / airframe)</label></div>
+  <div class="row"><input type="checkbox" id="wire"><label for="wire">Wireframe</label></div>
+  <div class="row"><button id="reset">Reset view</button><button id="toggle">Hide parts</button></div>
+  <div id="groups"></div>
+</div>
+<div id="info">Loading model…</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+// Part metadata: group, source file in makeflyeasy/MFE_ArduPlane/Pioneer
+const CAD = {
+  'Nose cone': '开拓者机头 (Pioneer head).step',
+  'Payload compartment': '开拓者载荷舱 (Pioneer payload compartment).step',
+  'Fuselage rear': '开拓者机身尾部 (Pioneer fuselage rear).step',
+  'Vertical tail': '开拓者垂尾 (Pioneer tail).step',
+  'Nav light right': '开拓者航灯外壳 (Pioneer navigation light housing).stp',
+  'Nav light left': '开拓者航灯外壳 (Pioneer navigation light housing).stp, mirrored',
+};
+const groupOf = n =>
+  CAD[n] ? 'CAD parts (STEP)' :
+  /wing|aileron/i.test(n) ? 'Wings' :
+  /stabilizer|elevator|rudder/i.test(n) ? 'Tail surfaces' :
+  /Rotor|boom/i.test(n) ? 'VTOL booms & rotors' :
+  /Cruise/i.test(n) ? 'Cruise propulsion' : 'Fuselage & gear';
+
+const view = document.getElementById('view');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+view.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.01, 100);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x445066, 0.6));
+const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(2, 4, 3); scene.add(sun);
+const grid = new THREE.GridHelper(6, 30, 0x8890a0, 0x8890a0);
+grid.material.transparent = true; grid.material.opacity = 0.25; scene.add(grid);
+
+function home() { camera.position.set(-2.4, 1.6, -2.6); controls.target.set(0, 0, 0.3); controls.update(); }
+home();
+
+const parts = [];   // {name, obj, base, dir, origMat, srcMat}
+const info = document.getElementById('info');
+const cadMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: .5 });
+const fbxMat = new THREE.MeshStandardMaterial({ color: 0xb8bec9, roughness: .6, transparent: true, opacity: .55 });
+const selMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: .4, emissive: 0x552200 });
+let selected = null;
+
+new GLTFLoader().load('pioneer_full.glb', gltf => {
+  const root = gltf.scene;
+  scene.add(root);
+  const box = new THREE.Box3().setFromObject(root), c = box.getCenter(new THREE.Vector3());
+  grid.position.y = box.min.y;
+  root.traverse(o => {
+    if (!o.isMesh) return;
+    o.name = o.name.replace(/_/g, ' ');   // GLTFLoader turns spaces into underscores
+    o.material.side = THREE.DoubleSide;
+    if (/propeller/i.test(o.name)) {   // recentre props on their hub so they can spin in place
+      o.geometry.computeBoundingBox(); const h = o.geometry.boundingBox.getCenter(new THREE.Vector3());
+      o.geometry.translate(-h.x, -h.y, -h.z); o.position.add(h);
+    }
+    const pc = new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3());
+    const dir = pc.sub(c); dir.y *= 1.5;
+    parts.push({ name: o.name, obj: o, base: o.position.clone(), dir, orig: o.material,
+                 src: CAD[o.name] ? cadMat : fbxMat, spin: /propeller/i.test(o.name), center: pc.add(c) });
+  });
+  buildList();
+  info.innerHTML = `<b>${parts.length} parts</b> — 6 from the official STEP CAD files, the rest from the RealFlight airframe model, aligned to the CAD frame. Click a part to inspect it.`;
+}, e => { if (e.total) info.textContent = `Loading model… ${Math.round(100 * e.loaded / e.total)}%`; },
+   () => { info.textContent = 'Could not load pioneer_full.glb — serve this folder over HTTP.'; });
+
+function buildList() {
+  const groups = {};
+  parts.forEach(p => (groups[groupOf(p.name)] ||= []).push(p));
+  const el = document.getElementById('groups');
+  Object.entries(groups).forEach(([g, list], i) => {
+    const d = document.createElement('details'); if (i === 0) d.open = true;
+    const all = document.createElement('input'); all.type = 'checkbox'; all.checked = true;
+    const s = document.createElement('summary'); s.append(all, ` ${g} (${list.length})`); d.append(s);
+    all.onclick = e => { e.stopPropagation(); list.forEach(p => { p.obj.visible = all.checked; p.box.checked = all.checked; }); };
+    list.forEach(p => {
+      const r = document.createElement('div'); r.className = 'part';
+      p.box = document.createElement('input'); p.box.type = 'checkbox'; p.box.checked = true;
+      p.box.onclick = e => { e.stopPropagation(); p.obj.visible = p.box.checked; };
+      const t = document.createElement('span'); t.className = 'tag'; t.textContent = CAD[p.name] ? 'STEP' : 'FBX';
+      r.append(p.box, p.name, t); r.onclick = () => select(p); p.row = r; d.append(r);
+    });
+    el.append(d);
+  });
+}
+
+function applyMaterials() {
+  const bySrc = document.getElementById('srcColor').checked, wire = document.getElementById('wire').checked;
+  parts.forEach(p => {
+    p.obj.material = p === selected ? selMat : bySrc ? p.src : p.orig;
+    p.obj.material.wireframe = wire;
+  });
+}
+function select(p) {
+  if (selected) selected.row.classList.remove('sel');
+  selected = selected === p ? null : p;
+  if (selected) {
+    selected.row.classList.add('sel');
+    const size = new THREE.Box3().setFromObject(p.obj).getSize(new THREE.Vector3()).multiplyScalar(1000);
+    info.innerHTML = `<b>${p.name}</b><br>${CAD[p.name] ? 'Source: ' + CAD[p.name] : 'Source: RealFlight airframe model (Pioneer.fbx)'}<br>` +
+      `Size: ${size.z.toFixed(0)} × ${size.x.toFixed(0)} × ${size.y.toFixed(0)} mm (L × W × H)<br>Triangles: ${(p.obj.geometry.index ? p.obj.geometry.index.count / 3 : 0).toLocaleString()}`;
+  }
+  applyMaterials();
+}
+['srcColor', 'wire'].forEach(id => document.getElementById(id).onchange = applyMaterials);
+document.getElementById('explode').oninput = e => parts.forEach(p => p.obj.position.copy(p.base).addScaledVector(p.dir, e.target.value * 0.9));
+document.getElementById('reset').onclick = home;
+document.getElementById('toggle').onclick = e => { const g = document.getElementById('groups'); g.hidden = !g.hidden; e.target.textContent = g.hidden ? 'Show parts' : 'Hide parts'; };
+
+const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(); let down;
+renderer.domElement.addEventListener('pointerdown', e => down = [e.clientX, e.clientY]);
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 4) return;
+  ptr.set(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1);
+  ray.setFromCamera(ptr, camera);
+  const hit = ray.intersectObjects(parts.filter(p => p.obj.visible).map(p => p.obj))[0];
+  if (hit) select(parts.find(p => p.obj === hit.object));
+});
+
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+const clock = new THREE.Clock();
+renderer.setAnimationLoop(() => {
+  const dt = clock.getDelta();
+  if (document.getElementById('spin').checked) parts.forEach(p => {
+    if (!p.spin) return;
+    // rotate about the propeller's own hub axis: vertical for rotors, longitudinal for the pusher
+    const axis = /Cruise/.test(p.name) ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0);
+    p.obj.rotateOnWorldAxis(axis, dt * 25);
+  });
+  controls.update(); renderer.render(scene, camera);
+});
+</script>
+</body>
+</html>
