@@ -1,0 +1,9 @@
+# KiCad backups, caches and local state
+*-backups/
+*.kicad_prl
+*.lck
+_autosave-*
+fp-info-cache
+~*.lck
+__pycache__/
+fab/gerbers/

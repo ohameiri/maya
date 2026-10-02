@@ -1,0 +1,4 @@
+(sym_lib_table
+	(version 7)
+	(lib (name "lr2021_esp32s3")(type "KiCad")(uri "${KIPRJMOD}/lib/lr2021_esp32s3.kicad_sym")(options "")(descr "Project symbols (LR2021)"))
+)

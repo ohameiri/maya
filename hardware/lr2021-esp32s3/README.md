@@ -1,0 +1,143 @@
+# LR2021 + ESP32-S3 LoRa Plus board
+
+A 4-layer, 90 × 65 mm KiCad 9 board with:
+
+- **Semtech LR2021** LoRa Plus transceiver (QFN-32 5×5). Its matching networks follow Semtech's LR2021 reference design (switchless "direct-tie").
+  - Sub-GHz path **868/915 MHz**, up to **+22 dBm** (PA_LF), on SMA **J5**.
+  - **2.4 GHz** path, up to **+12 dBm** (PA_HF), on SMA **J6**.
+- **ESP32-S3-WROOM-1-N16R8** module (16 MB flash, 8 MB octal PSRAM, Wi-Fi/BLE PCB antenna).
+- **USB-C** wired straight to the ESP32-S3 native USB (GPIO19/20). It handles flashing, USB-CDC console and JTAG, with no USB-UART bridge.
+- Power from **USB-C 5 V**, a **5 V screw terminal** or a **3.3 V screw terminal**. Any combination can be connected at the same time.
+- RESET and BOOT buttons, a power LED, a user LED on GPIO2, and a 2×10 GPIO header.
+
+Everything is generated from the Python scripts in [`scripts/`](scripts), so the design can be reviewed and rebuilt from source.
+
+| | |
+|---|---|
+| ![top copper](docs/pcb_top.png) | ![assembly](docs/pcb_assembly.png) |
+
+## Power design
+
+### Load budget (from the datasheets)
+
+| Consumer | Typical | Peak | Source |
+|---|---|---|---|
+| ESP32-S3 (Wi-Fi TX 802.11b, 20.5 dBm) | 95 mA (RX/idle) | **355 mA** | ESP32-S3-WROOM-1 datasheet |
+| LR2021 TX PA_LF +22 dBm, 915 MHz (SIMO, 3.3 V) | 105 mA | **~120 mA** | LR2021 DS rev 1.1, IDDTXLF1 / Fig 1-3 |
+| LR2021 TX PA_HF +12 dBm, 2.4 GHz | 24 mA | 24 mA | LR2021 DS Fig 1-7 |
+| LEDs, pull-ups | 3 mA | 3 mA | |
+| **Total on +3V3** | ~200 mA | **~480 mA** | |
+
+The 3.3 V rail is sized for **1 A**, about 2× the worst-case peak.
+
+### Topology
+
+```
+USB-C VBUS ──B5819W──┐
+                     ├── +5V ── AP7361C-33 (1 A LDO) ── +3V3_LDO ── LM66100 ──┐
+5V screw terminal ───┴──B5819W (SMF5.0CA TVS on input)                        ├── +3V3 ── ESP32-S3, LR2021 (via ferrite), LEDs
+3V3 screw terminal ── +3V3_EXT ───────────────────────────────── LM66100 ──────┘
+```
+
+- **5 V inputs**: USB-C and the 5 V terminal are combined by two B5819W Schottky diodes. They block back-feed into the USB host and protect against reverse polarity. The LDO input then sees about 4.5 V.
+- **LDO**: Diodes AP7361C-33E (1 A, 340 mV dropout at 1 A, SOT-223 with the GND tab on a ground pour). Worst-case dissipation is (4.55 − 3.3) V × 0.48 A ≈ 0.6 W during short Wi-Fi bursts. The average is about 0.15 W.
+- **3.3 V inputs**: The LDO output and the external 3.3 V input are combined by two **TI LM66100** ideal diodes (CE tied to VOUT, the reverse-current-blocking setup in the TI datasheet).
+  - The higher source supplies the rail and neither source can back-feed the other.
+  - The drop is about 50 mV at 0.5 A (79–125 mΩ), so a 3.3 V input still gives at least 3.2 V.
+  - The LM66100 also provides reverse-polarity protection on the 3.3 V terminal.
+- **External 3.3 V must stay between 3.0 and 3.6 V.** The ESP32-S3 limit is 3.6 V and the LR2021 operating maximum is 3.7 V (absolute maximum 3.9 V).
+- **LR2021 supply**: VBAT gets its own ferrite (FB1) plus 100 nF and 4.7 µF. The internal SIMO DC-DC uses the 2.2 µH LQM18PN2R2 inductor, as Semtech specifies. PA_LF reaches the full +22 dBm for VBAT ≥ 2.2 V.
+
+The schematic has one intentional ERC warning: the two LM66100 outputs (power-out pins) are tied together. The project's pin-conflict matrix downgrades power-out↔power-out from error to warning for that reason.
+
+## RF design
+
+- **Matching values** come from Semtech's LR2021 reference design (e788v01a, 868/915 MHz + 2.4 GHz). PA chokes: 12 nH (LF) and 18 nH (HF). Values on the schematic RF sheet:
+  - LF: L 4.7 nH, C 22 pF, C 7.5 pF ∥ (3.9 nH ∥ 1.8 pF), 3.9 pF, 2.4 nH, 1.8 pF.
+  - LF RX: 18 pF, 2.2 pF, 24 nH.
+  - HF: 1.5 nH, 6.8 pF, 2.7 pF, (1.6 nH ∥ 1.1 pF), 1.2 pF, 1.1 nH, 2.0 pF.
+  - HF RX: 18 pF, 2.4 nH.
+- **Optional parts (DNP)**: L12 and C33 are tuning pads. D6 and D7 are optional antenna ESD diodes. Use parts at or below 0.2 pF with a working voltage of at least 5.5 V. A 3.6 V part would clip the +22 dBm swing.
+- **Transmission lines**: grounded coplanar waveguide on L1 referenced to the solid **In1 ground plane**. Trace **0.38 mm** with a **0.2 mm** gap gives ≈ 50 Ω on the JLCPCB `JLC04161H-7628` stackup (0.2104 mm prepreg, εr ≈ 4.4).
+  - Ground stitching vias run along both feeds and around each SMA launch.
+- **Layout**: The LR2021 is rotated so all its RF pins face the right board edge. Each band has a TX row and an RX row of 0402 parts, the same structure as Semtech's layout.
+  - Shunt parts have their own ground via right at the pad.
+  - The RF section was routed by hand and locked. The autorouter was fenced out of it.
+- **ESP32 antenna**: The module's antenna sits flush with the top edge. The footprint's own keepout (no copper on any layer) is kept clear.
+
+> **Tuning note.** Semtech's values were tuned on their own PCB with mostly 0201 parts. This board uses 0402 parts and a different layout, so the match is a good starting point, not a guarantee. Before running full power, check S11 and the TX output with a VNA or spectrum analyzer, and adjust the shunt capacitors if needed.
+
+## ESP32-S3 ↔ LR2021 pin map
+
+| LR2021 | ESP32-S3 | Notes |
+|---|---|---|
+| NSS | GPIO10 | 10 k pull-up (radio deselected during boot) |
+| MOSI | GPIO11 | FSPI IO-MUX pins |
+| SCK | GPIO12 | |
+| MISO | GPIO13 | |
+| NRESET | GPIO14 | |
+| BUSY | GPIO21 | |
+| DIO9 | GPIO47 | suggested IRQ |
+| DIO8 | GPIO48 | |
+| DIO7 | GPIO9 | |
+| DIO11 | GPIO8 | can also take an external 32 kHz clock |
+
+Other ESP32-S3 connections:
+- USB D−/D+ go to GPIO19/20 (with USBLC6-2SC6 ESD protection).
+- The user LED is on GPIO2. BOOT is GPIO0 and RESET is EN.
+- GPIO header J4:
+
+  | Pins | Signals |
+  |---|---|
+  | 1, 2 | 3V3, 5V |
+  | 3–16 | GPIO1, 4, 5, 6, 7, 15, 16, 17, 18, 38, 39, 40, 41, 42 |
+  | 17, 18 | U0TXD, U0RXD |
+  | 19, 20 | GND |
+
+- Not used: GPIO35–37 are taken by the octal PSRAM. The strapping pins GPIO3, GPIO45 and GPIO46 are left free.
+
+## Manufacturing (JLCPCB)
+
+- **Stackup**: 4 layers, 1.6 mm, `JLC04161H-7628`, impedance control.
+  - L1: signals and RF.
+  - L2 (In1): solid GND.
+  - L3 (In2): signals and GND pour.
+  - L4: signals and GND pour.
+- **Design rules**: 0.1 mm minimum track and space, 0.45/0.25 mm minimum via, and 0.3 mm copper-to-edge clearance. The QFN thermal vias use 0.2 mm drills.
+- **Files** in [`fab/`](fab):
+
+  | File | Contents |
+  |---|---|
+  | `lr2021_esp32s3_gerbers.zip` | Gerbers and Excellon drill files |
+  | `lr2021_esp32s3_bom_jlcpcb.csv` | BOM for JLCPCB assembly |
+  | `lr2021_esp32s3_cpl_jlcpcb.csv` | Pick-and-place file |
+  | `lr2021_esp32s3_bom.csv` | Full BOM with specs and DNP parts |
+
+- **BOM**: Parts with known LCSC numbers have them filled in. For the RF passives, follow the spec column: C0G/NP0 with ±0.1 pF tolerance, and Murata LQW15AN (or equivalent high-Q wire-wound) inductors. Generic passives can be matched with JLCPCB's BOM tool.
+- **Not in the JLCPCB stock catalog**: the **LR2021IMLTRT** is available from Semtech distributors (Mouser, DigiKey). The **edge-mount SMA connectors** (footprint for Samtec SMA-J-P-H-ST-EM1, 1.6 mm board) are usually hand-soldered.
+- **Pick-and-place rotations**: check them in JLCPCB's preview. QFN, SOT-223 and the module are the usual offenders.
+
+## Rebuilding
+
+Requirements: KiCad 9 (`kicad-cli` and the `pcbnew` Python module), `sexpdata`, Java 17+ and [Freerouting](https://github.com/freerouting/freerouting) 2.1.
+
+```sh
+cd scripts
+python3 gen_project.py        # .kicad_pro: ERC matrix, net classes, JLCPCB rules
+python3 gen_schematic.py      # schematic + LR2021 symbol (lib/)
+/usr/bin/python3 gen_pcb.py   # placement, hand-routed RF, pours
+/usr/bin/python3 route.py /path/to/freerouting.jar
+/usr/bin/python3 export_fab.py
+cd .. && kicad-cli sch erc lr2021_esp32s3.kicad_sch && kicad-cli pcb drc --schematic-parity lr2021_esp32s3.kicad_pcb
+```
+
+## Verification status
+
+<!-- filled in after the final run -->
+
+## Sources
+
+- [Semtech LR2021 datasheet rev 1.1](https://www.mouser.com/pdfDocs/61979758LR2021_V1_1_datasheet.pdf): pinout (Table 2-1), SIMO inductor (§3.6), TX current, application section 23, package and land pattern (§24).
+- [LR2021 868/915 MHz reference design in KiCad (busterbn/lr2021_kicad)](https://github.com/busterbn/lr2021_kicad), used for the component values of Semtech's e788v01a design.
+- [ESP32-S3-WROOM-1 datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-s3-wroom-1_wroom-1u_datasheet_en.pdf)
+- [TI LM66100 datasheet](https://www.ti.com/lit/ds/symlink/lm66100.pdf) and [Diodes AP7361C datasheet](https://www.diodes.com/assets/Datasheets/AP7361C.pdf)

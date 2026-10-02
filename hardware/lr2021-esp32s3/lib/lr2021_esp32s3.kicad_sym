@@ -1,0 +1,524 @@
+(kicad_symbol_lib
+	(version 20241209)
+	(generator "gen_schematic.py")
+	(generator_version "9.0")
+	(symbol "LR2021"
+		(pin_names (offset 1.016))
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(property "Reference" "U"
+			(at -15.24 21.59 0)
+			(effects
+				(font (size 1.27 1.27))
+			)
+		)
+		(property "Value" "LR2021"
+			(at 15.24 21.59 0)
+			(effects
+				(font (size 1.27 1.27))
+			)
+		)
+		(property "Footprint" "Package_DFN_QFN:QFN-32-1EP_5x5mm_P0.5mm_EP3.7x3.7mm_ThermalVias"
+			(at 0 -25.4 0)
+			(effects
+				(font (size 1.27 1.27))
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "https://www.semtech.com/products/wireless-rf/lora-plus/lr2021"
+			(at 0 -27.94 0)
+			(effects
+				(font (size 1.27 1.27))
+				(hide yes)
+			)
+		)
+		(property "Description" "Semtech LR2021 LoRa Plus multi-band transceiver, sub-GHz/1.9-2.1GHz/2.4GHz, QFN-32 5x5mm"
+			(at 0 -30.48 0)
+			(effects
+				(font (size 1.27 1.27))
+				(hide yes)
+			)
+		)
+		(property "ki_keywords" "LoRa transceiver Semtech LR2021 LoRaPlus"
+			(at 0 0 0)
+			(effects
+				(font (size 1.27 1.27))
+				(hide yes)
+			)
+		)
+		(symbol "LR2021_0_1"
+			(rectangle
+				(start -15.24 20.32)
+				(end 15.24 -20.32)
+				(stroke (width 0.254) (type default))
+				(fill (type background))
+			)
+		)
+		(symbol "LR2021_1_1"
+			(pin power_in line
+				(at -20.32 17.78 0)
+				(length 5.08)
+				(name "VBAT"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "17"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin power_out line
+				(at -20.32 15.24 0)
+				(length 5.08)
+				(name "VR_PA"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "1"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin power_out line
+				(at -20.32 12.7 0)
+				(length 5.08)
+				(name "VPAX1"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "13"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin passive line
+				(at -20.32 10.16 0)
+				(length 5.08)
+				(name "VPAX2"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "2"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin power_out line
+				(at -20.32 7.62 0)
+				(length 5.08)
+				(name "VDCC1"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "12"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin passive line
+				(at -20.32 5.08 0)
+				(length 5.08)
+				(name "VDCC2"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "26"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin passive line
+				(at -20.32 2.54 0)
+				(length 5.08)
+				(name "LXA"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "16"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin passive line
+				(at -20.32 0 0)
+				(length 5.08)
+				(name "LXB"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "14"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin passive line
+				(at -20.32 -5.08 0)
+				(length 5.08)
+				(name "XTA"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "4"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin passive line
+				(at -20.32 -7.62 0)
+				(length 5.08)
+				(name "XTB"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "5"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin output line
+				(at -20.32 -10.16 0)
+				(length 5.08)
+				(name "VTCXO/VNTC"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "6"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin input line
+				(at -20.32 -12.7 0)
+				(length 5.08)
+				(name "NTC"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "3"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin input line
+				(at 20.32 17.78 180)
+				(length 5.08)
+				(name "NSS"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "24"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin input line
+				(at 20.32 15.24 180)
+				(length 5.08)
+				(name "SCK"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "23"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin input line
+				(at 20.32 12.7 180)
+				(length 5.08)
+				(name "MOSI"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "22"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin output line
+				(at 20.32 10.16 180)
+				(length 5.08)
+				(name "MISO"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "21"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin input line
+				(at 20.32 7.62 180)
+				(length 5.08)
+				(name "NRESET"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "20"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin output line
+				(at 20.32 5.08 180)
+				(length 5.08)
+				(name "BUSY"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "25"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin bidirectional line
+				(at 20.32 0 180)
+				(length 5.08)
+				(name "DIO5"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "19"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin bidirectional line
+				(at 20.32 -2.54 180)
+				(length 5.08)
+				(name "DIO6"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "18"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin bidirectional line
+				(at 20.32 -5.08 180)
+				(length 5.08)
+				(name "DIO7"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "11"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin bidirectional line
+				(at 20.32 -7.62 180)
+				(length 5.08)
+				(name "DIO8"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "10"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin bidirectional line
+				(at 20.32 -10.16 180)
+				(length 5.08)
+				(name "DIO9"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "9"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin bidirectional line
+				(at 20.32 -12.7 180)
+				(length 5.08)
+				(name "DIO10"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "8"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin bidirectional line
+				(at 20.32 -15.24 180)
+				(length 5.08)
+				(name "DIO11"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "7"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin passive line
+				(at -6.35 25.4 270)
+				(length 5.08)
+				(name "RFO_LF1"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "28"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin passive line
+				(at -3.81 25.4 270)
+				(length 5.08)
+				(name "RFO_LF2"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "27"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin passive line
+				(at -1.27 25.4 270)
+				(length 5.08)
+				(name "RFI_LF"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "29"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin passive line
+				(at 3.81 25.4 270)
+				(length 5.08)
+				(name "RFI_HF"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "31"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin passive line
+				(at 6.35 25.4 270)
+				(length 5.08)
+				(name "RFO_HF"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "32"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin power_in line
+				(at -5.08 -25.4 90)
+				(length 5.08)
+				(name "GND"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "30"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin power_in line
+				(at 0 -25.4 90)
+				(length 5.08)
+				(name "GND_DCC"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "15"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+			(pin power_in line
+				(at 5.08 -25.4 90)
+				(length 5.08)
+				(name "GND_EP"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+				(number "33"
+					(effects
+						(font (size 1.27 1.27))
+					)
+				)
+			)
+		)
+		(embedded_fonts no)
+	)
+)
