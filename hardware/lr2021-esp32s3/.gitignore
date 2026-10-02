@@ -7,3 +7,5 @@ fp-info-cache
 ~*.lck
 __pycache__/
 fab/gerbers/
+*.preroute
+logs/

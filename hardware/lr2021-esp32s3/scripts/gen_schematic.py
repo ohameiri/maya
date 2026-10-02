@@ -274,8 +274,8 @@ part('D4', 'Device:LED', 'GREEN', 'LED_SMD:LED_0603_1608Metric', 305, 135, 90, {
 ESP_NETS = {
     '2': '+3V3', '1': 'GND', '40': 'GND', '41': 'GND', '3': 'ESP_EN', '27': 'BOOT',
     '13': 'USB_DN', '14': 'USB_DP',
-    '17': 'LR_DIO7', '18': 'LR_NSS', '19': 'LR_MOSI', '20': 'LR_SCK', '21': 'LR_MISO', '22': 'LR_NRESET',
-    '23': 'LR_BUSY', '24': 'LR_DIO9', '25': 'LR_DIO8', '12': 'LR_DIO11', '38': 'LED_USER',
+    '17': NC, '18': 'LR_NSS', '19': 'LR_MOSI', '20': 'LR_SCK', '21': 'LR_MISO', '22': 'LR_NRESET',
+    '23': 'LR_BUSY', '24': 'LR_DIO9', '25': NC, '12': NC, '38': 'LED_USER',
     '39': 'GPIO1', '4': 'GPIO4', '5': 'GPIO5', '6': 'GPIO6', '7': 'GPIO7', '8': 'GPIO15', '9': 'GPIO16',
     '10': 'GPIO17', '11': 'GPIO18', '31': 'GPIO38', '32': 'GPIO39', '33': 'GPIO40', '34': 'GPIO41',
     '35': 'GPIO42', '37': 'U0TXD', '36': 'U0RXD',
@@ -306,7 +306,7 @@ LR_NETS = {
     '17': 'LR_VBAT', '1': 'VR_PA', '13': 'VPAX1', '2': 'VPAX', '12': 'VDCC1', '26': 'VDCC', '16': 'LXA', '14': 'LXB',
     '4': 'XTA', '5': 'XTB', '6': 'LR_VNTC', '3': 'LR_NTC',
     '24': 'LR_NSS', '23': 'LR_SCK', '22': 'LR_MOSI', '21': 'LR_MISO', '20': 'LR_NRESET', '25': 'LR_BUSY',
-    '19': NC, '18': NC, '11': 'LR_DIO7', '10': 'LR_DIO8', '9': 'LR_DIO9', '8': NC, '7': 'LR_DIO11',
+    '19': NC, '18': NC, '11': NC, '10': NC, '9': 'LR_DIO9', '8': NC, '7': NC,
     '28': 'RFO_LF', '27': 'RFO_LF', '29': 'RFI_LF', '31': 'RFI_HF', '32': 'RFO_HF',
     '30': 'GND', '15': 'GND', '33': 'GND',
 }
@@ -516,7 +516,8 @@ def main():
         for k, v in p['fields'].items():
             props.append(prop_node(k, v, X, Y, hide=True))
         node = [sym('symbol'), [sym('lib_id'), lib_id], [sym('at'), X, Y, rot], [sym('unit'), 1],
-                [sym('exclude_from_sim'), sym('no')], [sym('in_bom'), sym('no' if is_flag else 'yes')],
+                [sym('exclude_from_sim'), sym('no')],
+                [sym('in_bom'), sym('no' if is_flag or lib_id.startswith('Mechanical:') else 'yes')],
                 [sym('on_board'), sym('no' if is_flag else 'yes')], [sym('dnp'), sym('yes' if p['dnp'] else 'no')],
                 [sym('uuid'), u]] + props
         for pin in pins:

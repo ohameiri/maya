@@ -77,10 +77,11 @@ The schematic has one intentional ERC warning: the two LM66100 outputs (power-ou
 | MISO | GPIO13 | |
 | NRESET | GPIO14 | |
 | BUSY | GPIO21 | |
-| DIO9 | GPIO47 | suggested IRQ |
-| DIO8 | GPIO48 | |
-| DIO7 | GPIO9 | |
-| DIO11 | GPIO8 | can also take an external 32 kHz clock |
+| DIO9 | GPIO47 | IRQ (map any LR2021 interrupt to it with `SetDioFunction`) |
+
+Only one IRQ line is wired. RadioLib's LR2021 driver needs only an IRQ line plus BUSY.
+- DIO5–DIO8, DIO10 and DIO11 are left unconnected. Semtech says unused DIOs can float. The switchless RF design needs no RF-switch control lines.
+- Freeing those pins left room around the QFN for a clean hand fanout.
 
 Other ESP32-S3 connections:
 - USB D−/D+ go to GPIO19/20 (with USBLC6-2SC6 ESD protection).
@@ -94,16 +95,34 @@ Other ESP32-S3 connections:
   | 17, 18 | U0TXD, U0RXD |
   | 19, 20 | GND |
 
-- Not used: GPIO35–37 are taken by the octal PSRAM. The strapping pins GPIO3, GPIO45 and GPIO46 are left free.
+- Not used:
+  - GPIO35–37 are taken by the octal PSRAM.
+  - The strapping pins GPIO3, GPIO45 and GPIO46 are left free.
+  - GPIO8, GPIO9 and GPIO48 are unconnected.
+
+## PCB
+
+- **Size and stackup**: 90 × 65 mm, 4 layers, 1.6 mm, JLCPCB `JLC04161H-7628`.
+
+  | Layer | Use |
+  |---|---|
+  | L1 (F.Cu) | Components, RF, signals, GND pour |
+  | L2 (In1) | Solid GND (RF reference) |
+  | L3 (In2) | +3V3 plane |
+  | L4 (B.Cu) | Signals, GND pour |
+
+- **Hand-routed in [`gen_pcb.py`](scripts/gen_pcb.py)** and locked before autorouting:
+  - the RF section;
+  - the full LR2021 fanout (crystal, NTC divider, SIMO loop, VBAT/VDCC/VPAX, SPI escape vias);
+  - the duplicated USB-C pads;
+  - a via from every +3V3/GND pad to its plane.
+- **Autorouted**: Freerouting connects the rest on L1 and L4 only. The inner layers are declared as power planes.
+- **Ground stitching**: about 160 GND stitching vias tie the pours to the In1 plane.
+- **Design rules**: 0.1 mm minimum track and space, and 0.5/0.25 mm signal vias (0.6/0.3 mm for power and ground). Copper-to-edge clearance is 0.3 mm, and the QFN thermal vias use 0.2 mm drills.
 
 ## Manufacturing (JLCPCB)
 
-- **Stackup**: 4 layers, 1.6 mm, `JLC04161H-7628`, impedance control.
-  - L1: signals and RF.
-  - L2 (In1): solid GND.
-  - L3 (In2): signals and GND pour.
-  - L4: signals and GND pour.
-- **Design rules**: 0.1 mm minimum track and space, 0.45/0.25 mm minimum via, and 0.3 mm copper-to-edge clearance. The QFN thermal vias use 0.2 mm drills.
+- **Order settings**: 4 layers, 1.6 mm, impedance control with the `JLC04161H-7628` stackup.
 - **Files** in [`fab/`](fab):
 
   | File | Contents |
@@ -113,27 +132,36 @@ Other ESP32-S3 connections:
   | `lr2021_esp32s3_cpl_jlcpcb.csv` | Pick-and-place file |
   | `lr2021_esp32s3_bom.csv` | Full BOM with specs and DNP parts |
 
+- **Docs** in [`docs/`](docs): schematic PDF, per-layer PCB PDF and PNG previews.
 - **BOM**: Parts with known LCSC numbers have them filled in. For the RF passives, follow the spec column: C0G/NP0 with ±0.1 pF tolerance, and Murata LQW15AN (or equivalent high-Q wire-wound) inductors. Generic passives can be matched with JLCPCB's BOM tool.
 - **Not in the JLCPCB stock catalog**: the **LR2021IMLTRT** is available from Semtech distributors (Mouser, DigiKey). The **edge-mount SMA connectors** (footprint for Samtec SMA-J-P-H-ST-EM1, 1.6 mm board) are usually hand-soldered.
 - **Pick-and-place rotations**: check them in JLCPCB's preview. QFN, SOT-223 and the module are the usual offenders.
 
 ## Rebuilding
 
-Requirements: KiCad 9 (`kicad-cli` and the `pcbnew` Python module), `sexpdata`, Java 17+ and [Freerouting](https://github.com/freerouting/freerouting) 2.1.
+Requirements:
+- KiCad 9 (`kicad-cli` and the `pcbnew` Python module) and the `sexpdata` Python package.
+- Java 17+ and `xvfb-run`.
+- [Freerouting 1.9.0](https://github.com/freerouting/freerouting/releases/tag/v1.9.0). Version 2.x ignores the pass limit in headless mode.
 
 ```sh
 cd scripts
-python3 gen_project.py        # .kicad_pro: ERC matrix, net classes, JLCPCB rules
-python3 gen_schematic.py      # schematic + LR2021 symbol (lib/)
-/usr/bin/python3 gen_pcb.py   # placement, hand-routed RF, pours
-/usr/bin/python3 route.py /path/to/freerouting.jar
-/usr/bin/python3 export_fab.py
-cd .. && kicad-cli sch erc lr2021_esp32s3.kicad_sch && kicad-cli pcb drc --schematic-parity lr2021_esp32s3.kicad_pcb
+/usr/bin/python3 build.py /path/to/freerouting-1.9.0.jar
 ```
+
+`build.py` runs these steps in order:
+1. `gen_project.py`: ERC matrix, net classes, JLCPCB rules.
+2. `gen_schematic.py`: the schematic and the LR2021 symbol in `lib/`.
+3. ERC.
+4. `gen_pcb.py`: placement, hand routing, plane fanout, pours.
+5. `route.py`: Freerouting plus via clean-up and stitching. Freerouting is not deterministic, so routing is retried until DRC reports zero unconnected items.
+6. `export_fab.py`: fabrication files and docs.
 
 ## Verification status
 
-<!-- filled in after the final run -->
+- **ERC**: 0 errors. One intentional warning: the two LM66100 power outputs are tied together.
+- **DRC with `--schematic-parity`**: 0 errors, 0 unconnected items and 0 schematic/PCB mismatches. Two silkscreen warnings remain because the USB-C receptacle overhangs the board edge on purpose.
+- **Not verified**: there is no RF simulation or measurement, and no prototype has been built yet. See the tuning note above.
 
 ## Sources
 

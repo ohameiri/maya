@@ -83,11 +83,11 @@ def read_netlist():
 # pad carrying a given net ends up on the requested side.
 PLACE = {
     # ESP32-S3 module: antenna end flush with the top edge (module is 25.5 mm tall).
-    'U5': (125.0, 112.75, 0),
+    'U5': (125.0, 113.0, 0),
     'U6': (UX, UY, 270),
     # USB-C on the left edge, opening facing out.
     'J1': (103.0, 128.0, 270),
-    'U1': (111.0, 125.5, 0),
+    'U1': (112.5, 125.5, 0),
     'R1': (110.5, 131.6, 0),
     'R2': (110.5, 133.2, 0),
     # Power path
@@ -99,41 +99,32 @@ PLACE = {
     'U2': (126.0, 140.5, 0),
     'C3': (131.8, 138.2, 90),
     'C4': (133.6, 138.2, 90),
-    'C5': (124.0, 152.5, 0),
+    'C5': (119.0, 152.5, 0),
     'U3': (137.5, 140.0, 0),
     'U4': (137.5, 145.5, 0),
     'C6': (142.0, 140.0, 90),
     'C7': (143.8, 140.0, 90),
     # Screw terminals on the bottom edge, wire entry facing out.
-    'J2': (112.0, 159.75, 180),
-    'J3': (127.0, 159.75, 180),
+    'J2': (112.0, 159.5, 180),
+    'J3': (127.0, 159.5, 180),
     # ESP32 support
     'C9': (112.0, 109.6, 90),
     'C10': (114.0, 109.2, 90),
     'R4': (112.2, 113.6, 0),
     'C8': (112.2, 115.3, 0),
     'SW1': (105.5, 112.0, 0),
-    'SW2': (105.5, 118.6, 0),
+    'SW2': (143.0, 117.0, 0),
     'R5': (137.0, 122.5, 90),
     'D5': (141.0, 109.5, 0),
     'R6': (141.0, 111.5, 0),
     'D4': (146.0, 109.5, 0),
     'R3': (146.0, 111.5, 0),
     'J4': (135.0, 161.5, 90),
-    # LR2021 support (crystal + NTC on top, SIMO on the left, VBAT below)
-    'Y1': (*R(-0.6, -5.2), 270),
-    'TH1': (*R(-2.6, -5.2), 90),
-    'R8': (*R(-4.0, -5.2), 90),
-    'C16': (*R(1.25, -7.0), 90),
-    'FB3': (*R(-4.8, -2.8), 0),
-    'C15': (*R(-5.0, -1.2), 0),
-    'C13': (*R(-6.6, -0.2), 90),
-    'L1': (*R(-4.3, 1.25), 90),
-    'FB2': (*R(-6.6, 3.0), 90),
-    'C11': (*R(-1.75, 4.6), 90),
-    'C12': (*R(-3.2, 4.6), 90),
-    'FB1': (*R(-4.8, 4.6), 90),
-    'R7': (*R(0.9, 5.6), 90),
+    # LR2021 support: crystal on top (NTC divider left of it), SIMO parts on the left,
+    # VBAT decoupling below. Parts whose pad order matters are in _rf_parts().
+    'Y1': (*R(-0.6, -6.0), 270),
+    'C16': (*R(1.7, -7.4), 90),
+    'R7': (139.5, 122.5, 90),
     'H1': (186.0, 104.0, 0),
     'H2': (186.0, 161.0, 0),
     'H3': (104.0, 146.0, 0),
@@ -187,6 +178,19 @@ def _rf_parts():
     parts += [
         ('C17', 'v', R(2.6, -4.6), '/VR_PA', 'down'),
         ('C14', 'v', R(3.3, 4.6), '/VDCC'),
+        # NTC divider next to the crystal
+        ('R8', 'v', R(-3.2, -4.6), '/LR_VNTC', 'down'),
+        ('TH1', 'v', R(-3.2, -6.6), '/LR_NTC', 'down'),
+        # SIMO outputs: VDCC1 caps above the VPAX1 trace, VPAX1 caps below it
+        ('C13', 'v', R(-4.2, -1.25), '/VDCC1', 'down'),
+        ('FB2', 'v', R(-5.5, -1.25), '/VDCC1', 'down'),
+        ('C15', 'v', R(-6.8, 1.25), '/VPAX1'),
+        ('FB3', 'v', R(-8.1, 1.25), '/VPAX1'),
+        ('L1', 'h', R(-4.8, 2.4), '/LXB'),
+        # VBAT decoupling and feed
+        ('C11', 'v', R(-1.75, 4.3), '/LR_VBAT'),
+        ('C12', 'v', R(-3.0, 4.3), '/LR_VBAT'),
+        ('FB1', 'v', R(-4.5, 4.3), '/LR_VBAT'),
     ]
     return parts
 
@@ -195,6 +199,109 @@ RF_PARTS = _rf_parts()
 SMA_HF = (BX1 - 2.1, UY - 13.0)
 SMA_LF = (BX1 - 2.1, UY + 13.0)
 VR_PA_IN2_X = 3.95
+
+
+
+# ------------------------------------------------------------------ via placement helper
+class ViaPlacer:
+    """Finds free spots for plane/stitching vias. Works on axis-aligned pad and
+    courtyard boxes, so it is conservative."""
+    CLR = 0.22      # copper clearance used for the check (rules: 0.15-0.2)
+    HOLE_GAP = 0.3  # hole-to-hole
+
+    def __init__(self, board):
+        T = pcbnew.ToMM
+        self.board = board
+        self.pads, self.segs, self.vias, self.courts, self.keepouts = [], [], [], [], []
+        for fp in board.GetFootprints():
+            for pad in fp.Pads():
+                bb = pad.GetBoundingBox()
+                self.pads.append((pad.GetNetname(), (T(bb.GetLeft()), T(bb.GetTop()), T(bb.GetRight()), T(bb.GetBottom())),
+                                  pad.IsOnLayer(pcbnew.F_Cu), pad.IsOnLayer(pcbnew.B_Cu), fp.GetReference(),
+                                  pad.GetAttribute() in (pcbnew.PAD_ATTRIB_PTH, pcbnew.PAD_ATTRIB_NPTH)))
+            cy = fp.GetCourtyard(pcbnew.F_CrtYd)
+            if cy.OutlineCount():
+                bb = cy.BBox()
+                self.courts.append((fp.GetReference(), (T(bb.GetLeft()), T(bb.GetTop()), T(bb.GetRight()), T(bb.GetBottom())),
+                                    pcbnew.SHAPE_POLY_SET(cy)))
+            for z in fp.Zones():
+                if z.GetIsRuleArea() and z.GetDoNotAllowVias():
+                    bb = z.GetBoundingBox()
+                    self.keepouts.append((T(bb.GetLeft()), T(bb.GetTop()), T(bb.GetRight()), T(bb.GetBottom())))
+        for t in board.GetTracks():
+            if t.GetClass() == 'PCB_VIA':
+                p = t.GetPosition()
+                self.vias.append((t.GetNetname(), (T(p.x), T(p.y)), T(t.GetWidth(pcbnew.F_Cu)) / 2))
+            else:
+                self.segs.append((t.GetNetname(), (T(t.GetStart().x), T(t.GetStart().y)),
+                                  (T(t.GetEnd().x), T(t.GetEnd().y)), T(t.GetWidth()) / 2, t.GetLayer()))
+
+    @staticmethod
+    def _box_dist(p, b):
+        dx = max(b[0] - p[0], 0, p[0] - b[2])
+        dy = max(b[1] - p[1], 0, p[1] - b[3])
+        return math.hypot(dx, dy)
+
+    @staticmethod
+    def _seg_dist(p, a, b):
+        ax, ay = b[0] - a[0], b[1] - a[1]
+        L = ax * ax + ay * ay
+        t = 0 if L == 0 else max(0, min(1, ((p[0] - a[0]) * ax + (p[1] - a[1]) * ay) / L))
+        return math.hypot(p[0] - a[0] - t * ax, p[1] - a[1] - t * ay)
+
+    def via_ok(self, net, p, r, own_ref=None, margin=0.6):
+        if not (BX0 + margin <= p[0] <= BX1 - margin and BY0 + margin <= p[1] <= BY1 - margin):
+            return False
+        for k in self.keepouts:
+            if self._box_dist(p, k) < r + 0.1:
+                return False
+        for ref, b, poly in self.courts:
+            if ref == own_ref or self._box_dist(p, b) > r:
+                continue
+            # inside (or within r/2 of) the real courtyard outline
+            if poly.Contains(V(p)) or any(poly.Contains(V((p[0] + ex, p[1] + ey)))
+                                          for ex, ey in ((r / 2, 0), (-r / 2, 0), (0, r / 2), (0, -r / 2))):
+                return False
+        for pnet, b, *_rest in self.pads:
+            if pnet != net and self._box_dist(p, b) < r + self.CLR:
+                return False
+            if _rest[3] and self._box_dist(p, b) < r + self.HOLE_GAP:   # through-hole pads
+                return False
+        for vnet, c, vr in self.vias:
+            d = math.hypot(p[0] - c[0], p[1] - c[1])
+            if d < r + vr + (self.HOLE_GAP if vnet == net else self.CLR):
+                return False
+        for snet, a, b, hw, _layer in self.segs:
+            if snet != net and self._seg_dist(p, a, b) < r + hw + self.CLR:
+                return False
+        return True
+
+    def stub_ok(self, net, a, b, hw, layer_front=True):
+        for pnet, bb, on_f, on_b, *_ in self.pads:
+            if pnet == net or not (on_f if layer_front else on_b):
+                continue
+            # sample the segment
+            for i in range(11):
+                q = (a[0] + (b[0] - a[0]) * i / 10, a[1] + (b[1] - a[1]) * i / 10)
+                if self._box_dist(q, bb) < hw + self.CLR:
+                    return False
+        for snet, s0, s1, shw, layer in self.segs:
+            if snet == net or layer != (pcbnew.F_Cu if layer_front else pcbnew.B_Cu):
+                continue
+            for i in range(11):
+                q = (a[0] + (b[0] - a[0]) * i / 10, a[1] + (b[1] - a[1]) * i / 10)
+                if self._seg_dist(q, s0, s1) < hw + shw + self.CLR:
+                    return False
+        return True
+
+    def pads_near(self, p, d):
+        return any(self._box_dist(p, b) < d for _n, b, *_ in self.pads)
+
+    def add(self, net, p, r):
+        self.vias.append((net, p, r))
+
+    def add_seg(self, net, a, b, hw, layer=pcbnew.F_Cu):
+        self.segs.append((net, a, b, hw, layer))
 
 
 class Builder:
@@ -371,7 +478,9 @@ class Builder:
     def ground_pours(self):
         m = 0.3
         rect = [(BX0 + m, BY0 + m), (BX1 - m, BY0 + m), (BX1 - m, BY1 - m), (BX0 + m, BY1 - m)]
-        for layer in (pcbnew.In1_Cu, pcbnew.F_Cu, pcbnew.In2_Cu, pcbnew.B_Cu):
+        self.zone('GND', pcbnew.In1_Cu, rect, priority=0, clearance=0.2, name='GND_PLANE')
+        self.zone('+3V3', pcbnew.In2_Cu, rect, priority=0, clearance=0.2, name='3V3_PLANE')
+        for layer in (pcbnew.F_Cu, pcbnew.B_Cu):
             self.zone('GND', layer, rect, priority=0, clearance=0.2, name=f'GND_{layer}')
 
     # -------------------------------------------------------------- RF routing
@@ -460,13 +569,13 @@ class Builder:
         self.via('/VR_PA', bot_via)
         xi = UX + VR_PA_IN2_X
         self.track('/VR_PA', [top_via, (xi, top_via[1] + 0.55), (xi, bot_via[1] - 0.55), bot_via],
-                   w=0.4, layer=pcbnew.In2_Cu)
+                   w=0.4, layer=pcbnew.B_Cu)
         self.track('/VR_PA', [bot_via, (UX + 3.4, l2[1]), l2], w=0.3)
         self.track('/VR_PA', [l2, c18], w=0.3)
 
         # ---- GND for shunt parts: short stub to a stitching via (offset from the GND pad)
         for ref, d in (('C26', (0, -1.0)), ('C28', (0, -1.0)), ('C30', (0, -1.0)), ('C31', (0, -1.0)),
-                       ('D7', (0, -1.0)), ('L12', (0, 0.95)), ('C33', (0, 0.85)), ('C17', (0, -1.0)),
+                       ('D7', (0, -1.0)), ('L12', (0, 0.95)), ('C33', (0, 0.85)), ('C17', (-0.7, 0)),
                        ('C18', (0, 1.0)), ('C20', (0, 1.0)), ('C22', (0, 1.0)), ('C23', (0, 1.0)),
                        ('L6', (0, 1.0)), ('D6', (0, 1.0)), ('C25', (0, -0.85)), ('C14', (-0.6, 0.9))):
             g = self.padpos(ref, 'GND')
@@ -475,13 +584,9 @@ class Builder:
         for n in (30, 15):
             p = pin(n)
             self.track('GND', [p, (UX + (p[0] - UX) * 0.6, p[1])], w=PIN_W)
-        # SIMO loop kept tiny: LXB/LXA straight to the inductor
-        self.track('/LXB', [pin(14), (pp('L1', '/LXB')[0], pin(14)[1])], w=PIN_W)
-        self.track('/LXA', [pin(16), (pp('L1', '/LXA')[0], pin(16)[1])], w=PIN_W)
         # VDCC2 escape between the chip and the LF riser
         self.track('/VDCC', [pin(26), R(3.3, 1.25), pp('C14', '/VDCC')], w=PIN_W)
-        # XTA is right above its pin
-        self.track('/XTA', [pin(4), R(0.25, -3.6), pp('Y1', '/XTA')], w=0.2)
+        self.fanout_lr2021(pin)
 
         # Stitching vias along both sides of the antenna feeds and around the SMA launch
         for end, xd, j in feeds:
@@ -494,6 +599,213 @@ class Builder:
                 for s in (-1.3, 1.3):
                     self.via('GND', (j[0] + dx, j[1] + s))
         self.rf_feeds = feeds
+
+
+    def fanout_lr2021(self, pin):
+        """Escape every remaining LR2021 pin to a part pad or a via (QFN pitch is too tight
+        for the autorouter to do this reliably)."""
+        pp = self.padpos
+        SV = (0.5, 0.25)  # signal fanout via
+
+        def sig(net, pts, via=True, w=0.2):
+            self.track(net, pts, w=w)
+            if via:
+                self.via(net, pts[-1], *SV)
+
+        def gnd(ref, at, pad=None):
+            g = pad or pp(ref, 'GND')
+            self.track('GND', [g, at], w=0.3)
+            self.via('GND', at)
+
+        # Top row: XTA straight up, XTB around the left of the crystal, VTCXO -> R8,
+        # NTC over the top of the crystal to the divider, VPAX2 -> C16.
+        self.track('/XTA', [pin(4), R(0.25, -4.6), pp('Y1', '/XTA')], w=0.2)
+        self.track('/XTB', [pin(5), R(-0.25, -3.95), R(-2.0, -3.95), R(-2.0, -6.7), pp('Y1', '/XTB')], w=0.2)
+        y1 = self.fps['Y1']
+        for padnum, at in (('2', R(-1.15, -4.65)), ('4', R(-0.05, -7.55))):
+            p = y1.FindPadByNumber(padnum).GetPosition()
+            gnd('Y1', at, (pcbnew.ToMM(p.x), pcbnew.ToMM(p.y)))
+        self.track('/LR_VNTC', [pin(6), R(-0.75, -3.55), R(-3.2, -3.55), pp('R8', '/LR_VNTC')], w=0.2)
+        self.track('/LR_NTC', [pp('R8', '/LR_NTC'), pp('TH1', '/LR_NTC')], w=0.2)
+        self.track('/LR_NTC', [pin(3), R(0.75, -8.3), R(-2.6, -8.3), R(-2.6, -6.12), pp('TH1', '/LR_NTC')], w=0.2)
+        gnd('TH1', R(-4.1, -7.08))
+        self.track('/VPAX', [pin(2), R(1.25, -5.6), R(1.7, -6.05), pp('C16', '/VPAX')], w=0.25)
+        self.track('/VPAX', [R(1.7, -6.3), R(2.25, -6.3)], w=0.25)
+        self.via('/VPAX', R(2.25, -6.3), *SV)
+        gnd('C16', R(1.7, -8.75))
+        # Left column: DIO9 to a via, VDCC1 / VPAX1 straight out to their caps and
+        # ferrites, LXA/LXB down to the SIMO inductor, GND_DCC into the exposed pad.
+        sig('/LR_DIO9', [pin(9), R(-2.9, -1.75), R(-3.3, -2.15), R(-3.3, -2.3)])
+        self.track('/VDCC1', [pin(12), R(-5.5, -0.25)], w=0.25)
+        for ref in ('C13', 'FB2'):
+            p = pp(ref, '/VDCC1')
+            self.track('/VDCC1', [(p[0], UY - 0.25), p], w=0.25)
+        gnd('C13', R(-4.2, -2.55))
+        p = pp('FB2', '/VDCC')
+        self.track('/VDCC', [p, R(-5.5, -2.55)], w=0.25)
+        self.via('/VDCC', R(-5.5, -2.55), *SV)
+        self.via('/VDCC', R(3.3, 2.3), *SV)
+        # VDCC2 (right side) back to FB2 on the left: on B.Cu, between the exposed-pad
+        # thermal vias and the bottom-row fanout vias, then up the left side.
+        self.track('/VDCC', [R(3.3, 2.3), R(-2.9, 2.3), R(-2.9, -1.6), R(-5.5, -1.6), R(-5.5, -2.55)],
+                   w=0.25, layer=pcbnew.B_Cu)
+        self.track('/VPAX1', [pin(13), R(-8.1, 0.25)], w=0.25)
+        for ref in ('C15', 'FB3'):
+            p = pp(ref, '/VPAX1')
+            self.track('/VPAX1', [(p[0], UY + 0.25), p], w=0.25)
+        gnd('C15', R(-6.8, 2.6))
+        p = pp('FB3', '/VPAX')
+        self.track('/VPAX', [p, R(-8.1, 2.6)], w=0.25)
+        self.via('/VPAX', R(-8.1, 2.6), *SV)
+        lxb, lxa = pp('L1', '/LXB'), pp('L1', '/LXA')
+        self.track('/LXA', [pin(16), R(-3.0, 1.75), (lxa[0], lxa[1] - 0.2)], w=0.25)
+        self.track('/LXB', [pin(14), R(-3.0, 0.75), R(-3.3, 1.05), (lxb[0], UY + 1.05), lxb], w=0.25)
+        # Bottom row: VBAT to its caps and ferrite; SPI/NRESET to staggered vias.
+        vb = [pp(r, '/LR_VBAT') for r in ('C11', 'C12', 'FB1')]
+        self.track('/LR_VBAT', [pin(17), vb[0]], w=0.25)
+        self.track('/LR_VBAT', [vb[0], vb[2]], w=0.3)
+        for ref in ('C11', 'C12'):
+            g = pp(ref, 'GND')
+            gnd(ref, (g[0], g[1] + 0.85))
+        f = pp('FB1', '+3V3')
+        self.track('+3V3', [f, (f[0], f[1] + 0.85)], w=0.3)
+        self.via('+3V3', (f[0], f[1] + 0.85))
+        for n, net, y in ((20, '/LR_NRESET', 3.55), (21, '/LR_MISO', 4.45), (22, '/LR_MOSI', 3.55),
+                          (23, '/LR_SCK', 4.45), (24, '/LR_NSS', 3.55)):
+            p = pin(n)
+            sig(net, [p, (p[0], UY + y)])
+        sig('/LR_BUSY', [pin(25), R(2.7, 1.75), R(2.7, 3.4)])
+
+    def usb_c(self):
+        """Join the duplicated USB-C pads (the autorouter cannot thread the 0.5 mm pitch)."""
+        J = self.fps['J1']
+
+        def pad(num):
+            p = J.FindPadByNumber(num).GetPosition()
+            return (pcbnew.ToMM(p.x), pcbnew.ToMM(p.y))
+
+        inner = pad('A6')[0] + 0.725  # inner end of the signal pads
+        # VBUS: via next to each VBUS pad, joined on B.Cu underneath the connector.
+        v1, v2 = pad('A4'), pad('A9')
+        a, b = (inner + 1.0, v1[1]), (inner + 1.0, v2[1])
+        self.track('VBUS', [v1, a], w=0.5)
+        self.track('VBUS', [v2, b], w=0.5)
+        self.via('VBUS', a)
+        self.via('VBUS', b)
+        self.track('VBUS', [a, (inner - 0.9, a[1]), (inner - 0.9, b[1]), b], w=0.5, layer=pcbnew.B_Cu)
+        # GND pads to the plane
+        for num, dy in (('A1', -0.15), ('A12', 0.15)):
+            g = pad(num)
+            at = (inner + 0.8, g[1] + dy * 6)
+            self.track('GND', [g, at], w=0.4)
+            self.via('GND', at)
+        # D-: B7 and A7 drop to vias and are joined on B.Cu; D+: A6 and B6 joined on F.Cu.
+        dn1, dn2, dp1, dp2 = pad('B7'), pad('A7'), pad('A6'), pad('B6')
+        va, vb = (inner + 0.75, dn1[1]), (inner + 1.65, dn2[1])
+        self.track('/USB_DN', [dn1, va], w=0.2)
+        self.track('/USB_DN', [dn2, vb], w=0.2)
+        self.via('/USB_DN', va, 0.5, 0.25)
+        self.via('/USB_DN', vb, 0.5, 0.25)
+        self.track('/USB_DN', [va, (va[0], vb[1] - 0.45), (vb[0] - 0.45, vb[1] - 0.45), vb], w=0.2, layer=pcbnew.B_Cu)
+        xj = inner + 2.45
+        self.track('/USB_DP', [dp1, (xj, dp1[1]), (xj, dp2[1]), dp2], w=0.2)
+
+
+    def plane_fanout(self):
+        """Give every SMD pad on +3V3 / GND its own via to the inner plane."""
+        T = pcbnew.ToMM
+        vp = ViaPlacer(self.board)
+        skip = {'U6', 'J1', 'J5', 'J6'} | {i[0] for i in RF_PARTS}
+        connected = set()
+        for t in self.board.GetTracks():
+            if t.GetNetname() in ('+3V3', 'GND'):
+                for q in (t.GetStart(), t.GetEnd()):
+                    connected.add((t.GetNetname(), round(T(q.x), 2), round(T(q.y), 2)))
+        failed = []
+        for fp in self.board.GetFootprints():
+            ref = fp.GetReference()
+            if ref in skip:
+                continue
+            c = fp.GetPosition()
+            cx, cy = T(c.x), T(c.y)
+            for pad in fp.Pads():
+                net = pad.GetNetname()
+                if net not in ('+3V3', 'GND') or pad.GetAttribute() != pcbnew.PAD_ATTRIB_SMD:
+                    continue
+                px, py = T(pad.GetPosition().x), T(pad.GetPosition().y)
+                if (net, round(px, 2), round(py, 2)) in connected:
+                    continue
+                bb = pad.GetBoundingBox()
+                hw_x, hw_y = T(bb.GetWidth()) / 2, T(bb.GetHeight()) / 2
+                if ref == 'U5' and pad.GetNumber() == '41':
+                    continue  # the module footprint already has thermal vias in its EPAD
+                dx, dy = px - cx, py - cy
+                if abs(dx) >= abs(dy):
+                    dirs = [(math.copysign(1, dx or 1), 0), (0, 1), (0, -1), (-math.copysign(1, dx or 1), 0)]
+                else:
+                    dirs = [(0, math.copysign(1, dy)), (1, 0), (-1, 0), (0, -math.copysign(1, dy))]
+                r = 0.3 if net == '+3V3' else 0.25
+                placed = False
+                for d in (0.0, 0.25, 0.5, 0.8, 1.2, 1.6):
+                    for ux, uy in dirs:
+                        ext = (hw_x if ux else hw_y) + r + 0.15 + d
+                        for side in (0.0, 0.5, -0.5):
+                            q = (px + ux * ext + (side if not ux else 0), py + uy * ext + (side if ux else 0))
+                            if vp.via_ok(net, q, r, own_ref=ref) and vp.stub_ok(net, (px, py), q, 0.15):
+                                self.track(net, [(px, py), q], w=0.3)
+                                self.via(net, q, 2 * r, r)
+                                vp.add(net, q, r)
+                                vp.add_seg(net, (px, py), q, 0.15)
+                                placed = True
+                                break
+                        if placed:
+                            break
+                    if placed:
+                        break
+                if not placed:
+                    failed.append(f'{ref}.{pad.GetNumber()}')
+        if failed:
+            print('plane fanout: no via spot for', ', '.join(failed))
+
+
+    def silkscreen(self):
+        """Hide reference designators of small parts on silk (they stay on F.Fab for the
+        assembly drawing) and add functional labels."""
+        keep = ('U6', 'J1', 'J2', 'J3', 'J4', 'J5', 'J6', 'U2', 'U3', 'U4', 'U1')
+        for ref, fp in self.fps.items():
+            fld = fp.Reference()
+            if ref.startswith('H') or ref not in keep:
+                fld.SetVisible(False)
+            else:
+                fld.SetTextSize(pcbnew.VECTOR2I(MM(0.8), MM(0.8)))
+                fld.SetTextThickness(MM(0.12))
+        labels = [
+            ('LR2021 + ESP32-S3  rev 1.0', (160.0, 151.0), 1.2, 0),
+            ('USB-C', (110.0, 121.7), 0.9, 0),
+            # Terminals are rotated 180 deg: pin 1 (+, square pad) is the right-hand one.
+            ('5V IN', (109.5, 151.8), 0.9, 0),
+            ('+', (112.0, 153.2), 1.0, 0),
+            ('-', (107.0, 153.2), 1.0, 0),
+            ('3V3 IN', (124.5, 151.8), 0.9, 0),
+            ('+', (127.0, 153.2), 1.0, 0),
+            ('-', (122.0, 153.2), 1.0, 0),
+            ('915 MHz', (183.0, UY + 13.0 + 4.6), 0.9, 0),
+            ('2.4 GHz', (183.0, UY - 13.0 - 4.6), 0.9, 0),
+            ('RESET', (105.5, 108.4), 0.8, 0),
+            ('BOOT', (143.0, 113.4), 0.8, 0),
+            ('GPIO  1:3V3  2:5V  19,20:GND', (147.0, 156.3), 0.8, 0),
+            ('USR', (141.0, 107.9), 0.8, 0),
+            ('PWR', (146.0, 107.9), 0.8, 0),
+        ]
+        for text, (x, y), size, rot in labels:
+            t = pcbnew.PCB_TEXT(self.board)
+            t.SetText(text)
+            t.SetPosition(V((x, y)))
+            t.SetLayer(pcbnew.F_SilkS)
+            t.SetTextSize(pcbnew.VECTOR2I(MM(size), MM(size)))
+            t.SetTextThickness(MM(size * 0.15))
+            t.SetTextAngleDegrees(rot)
+            self.board.Add(t)
 
     # -------------------------------------------------------------- run
     def build(self):
@@ -511,6 +823,9 @@ class Builder:
         if missing:
             raise SystemExit(f'unplaced: {missing}')
         self.route_rf()
+        self.usb_c()
+        self.plane_fanout()
+        self.silkscreen()
         self.ground_pours()
         self.board.BuildConnectivity()
         pcbnew.SaveBoard(PCB, self.board)

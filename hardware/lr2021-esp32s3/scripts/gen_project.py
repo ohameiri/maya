@@ -114,8 +114,8 @@ def main():
         "meta": {"filename": f"{PROJECT}.kicad_pro", "version": 3},
         "net_settings": {
             "classes": [
-                netclass("Default", 0.2, 0.15, priority=2147483647),
-                netclass("Power", 0.5, 0.2, 0.8, 0.4, priority=1),
+                netclass("Default", 0.2, 0.15, 0.5, 0.25, priority=2147483647),
+                netclass("Power", 0.5, 0.2, 0.6, 0.3, priority=1),
                 # 50 ohm grounded coplanar waveguide on L1 over the L2 ground (JLC04161H-7628,
                 # 0.2104mm prepreg, er 4.4): 0.38mm track, 0.2mm gap -> ~49.7 ohm.
                 netclass("RF_50R", 0.38, 0.2, 0.6, 0.3, priority=0),

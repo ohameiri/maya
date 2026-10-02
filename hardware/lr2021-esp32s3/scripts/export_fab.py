@@ -33,7 +33,8 @@ def cli(*args):
 
 def describe(ref, value, fp):
     """Purchasing description for generic passives."""
-    pkg = fp.split(':')[1].split('_')[1] if '_' in fp else fp
+    name = fp.split(':')[-1].split('_')
+    pkg = name[1] if len(name) > 1 else name[0]
     if ref.startswith('C'):
         if value.endswith('pF'):
             return f'{value} 50V C0G/NP0 {pkg}'
@@ -99,9 +100,13 @@ def gerbers():
 def docs():
     os.makedirs(DOCS, exist_ok=True)
     cli('sch', 'export', 'pdf', '-o', os.path.join(DOCS, f'{NAME}_schematic.pdf'), SCH)
+    # --mode-multipage writes <dir>/<board>.pdf, so render into a temp dir and move it.
+    tmpdir = '/tmp/claude-0/pcbpdf'
+    shutil.rmtree(tmpdir, ignore_errors=True)
     cli('pcb', 'export', 'pdf', '--mode-multipage', '--include-border-title', '--layers',
         'F.Cu,In1.Cu,In2.Cu,B.Cu,F.Silkscreen,F.Fab', '--common-layers', 'Edge.Cuts',
-        '-o', os.path.join(DOCS, f'{NAME}_pcb_layers.pdf'), PCB)
+        '-o', tmpdir + '/', PCB)
+    shutil.move(os.path.join(tmpdir, f'{NAME}.pdf'), os.path.join(DOCS, f'{NAME}_pcb_layers.pdf'))
     # PNG previews (board area only) for the README.
     tmp = '/tmp/claude-0/preview.pdf'
     dpi = 300
