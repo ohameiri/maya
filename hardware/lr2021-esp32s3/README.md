@@ -111,7 +111,7 @@ Other ESP32-S3 connections:
 ## PCB
 
 - **Size and stackup**: 62 × 47 mm, 4 layers, 1.6 mm, JLCPCB `JLC04161H-7628`.
-- **Mounting**: two M2 holes on the right side, between the SMA connectors and the header.
+- **Mounting**: two M2 holes, one on the right edge between the two SMA connectors and one at the top between the ESP32 module and the radio section.
 
   | Layer | Use |
   |---|---|

@@ -132,7 +132,7 @@ PLACE = {
     'C16': (*R(1.7, -7.4), 90),
     # Two M2 holes on the right edge (the rest of the perimeter is taken by connectors).
     'H1': (BX1 - 2.8, UY, 0),
-    'H2': (154.6, 136.3, 0),
+    'H2': (128.6, 104.0, 0),
 }
 
 
@@ -819,6 +819,23 @@ class Builder:
             self.board.Add(t)
 
     # -------------------------------------------------------------- run
+    def local_joins(self):
+        # Short links the autorouter keeps failing on in the tight LDO/LED corner.
+        # +3V3_LDO into U3 pin 1 dips to B.Cu: the F.Cu side of U3 is taken by its own plane vias.
+        c4 = self.padpos('C4', '/+3V3_LDO')
+        u3 = self.padpos('U3', '/+3V3_LDO')
+        top = (u3[0] - 0.3, u3[1] - 0.95)
+        low = (c4[0], c4[1] + 0.87)
+        self.track('/+3V3_LDO', [u3, (top[0], u3[1]), top], w=0.4)
+        self.track('/+3V3_LDO', [c4, low], w=0.4)
+        self.track('/+3V3_LDO', [top, (top[0], low[1]), low], w=0.3, layer=pcbnew.B_Cu)
+        self.via('/+3V3_LDO', top)
+        self.via('/+3V3_LDO', low)
+        r3 = self.padpos('R3', '/LED_PWR')
+        d4 = self.padpos('D4', '/LED_PWR')
+        x = (r3[0] + d4[0]) / 2
+        self.track('/LED_PWR', [r3, (x, r3[1]), (x, d4[1]), d4], w=0.25)
+
     def build(self):
         self.add_nets()
         self.add_footprints()
@@ -835,6 +852,7 @@ class Builder:
             raise SystemExit(f'unplaced: {missing}')
         self.route_rf()
         self.usb_c()
+        self.local_joins()
         self.plane_fanout()
         self.silkscreen()
         self.ground_pours()
