@@ -147,6 +147,7 @@ Other ESP32-S3 connections:
   - **LEDs**: PWR is green AlInGaP (Lite-On LTST-C190KGKT) and USR is red. Both have Vf ≈ 2 V, so the 1 kΩ resistors on 3.3 V give about 1 mA. InGaN green or blue LEDs (Vf ≈ 3 V) would barely light with these resistors.
 - **LR2021IMLTRT (U6)**: listed at JLCPCB/LCSC as **C49421489** (about $15), but stock was **0** when checked. Either use JLCPCB Global Sourcing (they buy it from Mouser/DigiKey; this adds lead time) or send consigned parts. Check stock again just before ordering.
 - **Through-hole and edge parts** (screw terminals, GPIO header, edge-mount SMA C5199907): JLCPCB can assemble them for an extra fee, or they can be hand-soldered.
+- **Fully assembled order** (no hand soldering): choose **Standard PCBA** (Economic does not do through-hole), assembly side **Top**, and turn on **Confirm Parts Placement**. The CPL already lists the through-hole parts (J2–J4) and the SMA connectors. J5/J6 straddle the board edge with ground pads on **both** sides. Add an order remark asking for the bottom-side pads to be soldered too. Order the LR2021 through **Global Sourcing** (DigiKey stocks it).
 - **Pick-and-place rotations**: check them in JLCPCB's preview. QFN, SOT-223 and the module are the usual offenders.
 
 ## Rebuilding
