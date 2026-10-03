@@ -22,6 +22,7 @@ PROJ_DIR = os.path.dirname(HERE)
 PROJECT = 'lr2021_esp32s3'
 PCB = os.path.join(PROJ_DIR, f'{PROJECT}.kicad_pcb')
 FPLIB = '/usr/share/kicad/footprints'
+LOCAL_MODELS = {'USB_C_Receptacle_HRO_TYPE-C-31-M-12.step', 'SW_Push_1P1T_XKB_TS-1187A.step'}
 MM = pcbnew.FromMM
 
 # Board outline (mm). KiCad origin offset keeps the board inside the A4 sheet.
@@ -335,6 +336,10 @@ class Builder:
             if fp is None:
                 raise SystemExit(f'footprint {c["fp"]} not found for {ref}')
             fp.SetFPIDAsString(c['fp'])
+            for m in fp.Models():  # models missing from the KiCad library: use ours (gen_3d_models.py)
+                base = os.path.basename(m.m_Filename)
+                if base in LOCAL_MODELS:
+                    m.m_Filename = '${KIPRJMOD}/lib/3d/' + base
             fp.SetReference(ref)
             fp.SetValue(c['value'])
             fp.SetPath(pcbnew.KIID_PATH('/' + c['uuid']))
