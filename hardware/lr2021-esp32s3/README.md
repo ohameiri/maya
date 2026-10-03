@@ -189,10 +189,18 @@ Second round (assembly yield and robustness):
 
 | # | Check | Result |
 |---|---|---|
-| 9 | Exposed pads: paste coverage and thermal vias | Pass. LR2021: four paste windows cover 65 % of the EP (target 50–80 %). Its nine 0.2 mm thermal vias are tented on B.Cu, which limits solder wicking. ESP32 module EPAD: 21 % coverage, deliberately low. Espressif says the EPAD need not be soldered and that excess paste lifts the module off its castellations |
+| 9 | Exposed pads: paste coverage and thermal vias | Pass. LR2021: four paste windows cover 65 % of the EP (target 50–80 %). Its nine 0.2 mm thermal vias are tented on B.Cu, which limits solder wicking. ESP32 module EPAD: nine windows, 48 % coverage, from the standard footprint. Espressif says the EPAD need not be soldered and that excess paste lifts the module off its castellations, so this moderate amount is right |
 | 10 | USB D+/D− | Pass. 22.5 mm and 34.1 mm, both through U1. The ESP32-S3 PHY is Full-Speed only (12 Mbit/s, 4–20 ns edges), so the 11.6 mm mismatch (≈70 ps) and the single-ended 0.2 mm tracks do not matter |
 | 11 | Reverse-polarity wiring on the screw terminals | Pass. 5 V: D2 blocks, and the bidirectional SMF5.0CA does not conduct at −5 V. 3.3 V: LM66100 input is rated to −6 V and stays off (datasheet §8.3.1, RPP), and CE (tied to VOUT) never goes negative |
 | 12 | DFM detail: solder-mask webs, acid traps, PTH annular rings, hole spacing, pour minimum width | Pass. Smallest web between different nets 0.20 mm (USB-C). All 14 sub-90° track junctions sit inside pad copper. Annular ring ≥ 0.15 mm, hole-to-hole ≥ 0.35 mm (inside the USB-C footprint), pours 0.2 mm minimum width |
+
+Third round (independent of KiCad):
+
+| # | Check | Result |
+|---|---|---|
+| 13 | Gerbers rendered on their own (gerbonara + Chromium), not from the KiCad board | Pass. 11 layers recognised with the right functions and a 62.05 × 47.05 mm outline. In1 is an unbroken GND plane and In2 an unbroken +3V3 plane, with via antipads only. All vias are tented on both sides. The bottom mask opens only the SMA ground pads, THT pads and USB-C slots, and the LR2021 thermal vias are covered underneath. Paste matches check 9 |
+| 14 | Firmware build with the board's pin map (`firmware/pinmap_check`, PlatformIO, Arduino-ESP32, 16 MB flash + octal PSRAM) | Pass. Compiles cleanly. LR2021 SPI is on the FSPI IOMUX pins GPIO10–13, with NRESET on GPIO14, BUSY on GPIO21, IRQ (DIO9) on GPIO47, USB CDC on GPIO19/20 and the LED on GPIO2. Nothing touches the PSRAM pins (GPIO35–37) or the strapping pins (3, 45, 46) |
+| 15 | LR2021 SIMO and crystal layout | Pass. L1 is 2.3 mm from LXA and 5.3 mm from LXB. VDCC1/VPAX1/VBAT caps are 1.4–4.4 mm from their pins, each with a GND via within 0.9 mm. GND_DCC (pin 15) runs straight into the exposed pad with its nine vias. The crystal sits 4.5 mm from the chip on 2.9 mm and 6.9 mm traces. The only supply near it (VPAX, already filtered by FB3 and 2.2 µF) runs on B.Cu, with both inner planes in between |
 
 Accepted deviations:
 - LM66100 ST pins are left open. They are open-drain outputs, so this is harmless; TI suggests tying them to GND.
