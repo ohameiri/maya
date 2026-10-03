@@ -168,7 +168,7 @@ cd scripts
 ## Verification status
 
 - **ERC**: 0 errors. One intentional warning: the two LM66100 power outputs are tied together.
-- **DRC with `--schematic-parity`**: 0 errors, 0 unconnected items and 0 schematic/PCB mismatches. Two silkscreen warnings remain because the USB-C receptacle overhangs the board edge on purpose.
+- **DRC with `--schematic-parity`**: 0 errors, 0 unconnected items and 0 schematic/PCB mismatches. Four silkscreen warnings remain, all at the board edge: the USB-C receptacle overhangs it on purpose, and the screw terminals' pin-1 markers sit on it. The fab trims silkscreen at the edge.
 - **Not verified**: there is no RF simulation or measurement, and no prototype has been built yet. See the tuning note above.
 
 ## Sources
