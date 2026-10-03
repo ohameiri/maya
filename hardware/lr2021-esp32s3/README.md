@@ -185,6 +185,15 @@ Run before ordering (October 2026). Re-run after any change: `build.py`, then `s
 | 7 | Power: trace widths and vias on the 1 A paths | Pass. +5V/VBUS 0.5 mm, narrowest +3V3_LDO segment 0.3 mm on 1 oz outer copper (≈1 A at 10 °C rise) |
 | 8 | Mechanical: mounting-hole keep-clear, edge connectors | Pass. Nearest part is 6.9 mm from a hole centre. USB-C and SMA overhang the edge as intended |
 
+Second round (assembly yield and robustness):
+
+| # | Check | Result |
+|---|---|---|
+| 9 | Exposed pads: paste coverage and thermal vias | Pass. LR2021: four paste windows cover 65 % of the EP (target 50–80 %). Its nine 0.2 mm thermal vias are tented on B.Cu, which limits solder wicking. ESP32 module EPAD: 21 % coverage, deliberately low. Espressif says the EPAD need not be soldered and that excess paste lifts the module off its castellations |
+| 10 | USB D+/D− | Pass. 22.5 mm and 34.1 mm, both through U1. The ESP32-S3 PHY is Full-Speed only (12 Mbit/s, 4–20 ns edges), so the 11.6 mm mismatch (≈70 ps) and the single-ended 0.2 mm tracks do not matter |
+| 11 | Reverse-polarity wiring on the screw terminals | Pass. 5 V: D2 blocks, and the bidirectional SMF5.0CA does not conduct at −5 V. 3.3 V: LM66100 input is rated to −6 V and stays off (datasheet §8.3.1, RPP), and CE (tied to VOUT) never goes negative |
+| 12 | DFM detail: solder-mask webs, acid traps, PTH annular rings, hole spacing, pour minimum width | Pass. Smallest web between different nets 0.20 mm (USB-C). All 14 sub-90° track junctions sit inside pad copper. Annular ring ≥ 0.15 mm, hole-to-hole ≥ 0.35 mm (inside the USB-C footprint), pours 0.2 mm minimum width |
+
 Accepted deviations:
 - LM66100 ST pins are left open. They are open-drain outputs, so this is harmless; TI suggests tying them to GND.
 - U4's input capacitor (C5, 10 µF) sits at the 3.3 V terminal, 19 mm from U4. U4 is a switch, not a regulator, so this only affects inrush dip.
