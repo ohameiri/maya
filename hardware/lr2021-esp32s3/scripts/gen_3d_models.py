@@ -3,6 +3,7 @@
 
 - USB_C_Receptacle_HRO_TYPE-C-31-M-12 (HRO TYPE-C-31-M-12, 8.94 x 7.35 x 3.26 mm)
 - SW_Push_1P1T_XKB_TS-1187A (XKB TS-1187A, 5.1 x 5.1 mm, 1.5 mm actuator height)
+- ESP32-S3-WROOM-1U (18 x 19.2 x 3.2 mm, shield can + U.FL connector)
 
 Coordinates follow KiCad's convention: origin at the footprint origin, model +Y is
 footprint -Y (KiCad flips Y), Z up from the board surface. Requires CadQuery.
@@ -77,10 +78,37 @@ def ts1187a():
     return asm
 
 
+def wroom1u():
+    # Footprint body: x +-9, y +-9.6; U.FL at footprint (6.0, -7.14) -> model (6.0, +7.14).
+    pcb = cq.Workplane('XY').box(18.0, 19.2, 0.8).translate((0, 0, 0.4))
+    shield = (cq.Workplane('XY').box(16.6, 13.6, 2.4).translate((0, -1.9, 0.8 + 1.2))
+              .edges('|Z').fillet(0.4))
+    ufl_base = cq.Workplane('XY').box(2.6, 2.6, 0.3).translate((6.0, 7.14, 0.8 + 0.15))
+    ufl = cq.Workplane('XY', origin=(6.0, 7.14, 1.1)).circle(1.0).extrude(1.15).faces('>Z').hole(1.2, 0.8)
+    pads = None
+    for i in range(14):  # castellated side pads, 1.27 mm pitch
+        y = 8.41 - i * 1.27
+        for x in (-8.95, 8.95):
+            p = cq.Workplane('XY').box(0.3, 0.9, 0.85).translate((x, y, 0.42))
+            pads = p if pads is None else pads.union(p)
+    for i in range(12):
+        x = -6.985 + i * 1.27
+        p = cq.Workplane('XY').box(0.9, 0.3, 0.85).translate((x, -9.45, 0.42))
+        pads = pads.union(p)
+    asm = cq.Assembly(name='ESP32-S3-WROOM-1U')
+    asm.add(pcb, name='pcb', color=cq.Color(0.08, 0.08, 0.10))
+    asm.add(shield, name='shield', color=METAL)
+    asm.add(ufl_base, name='ufl_base', color=GOLD)
+    asm.add(ufl, name='ufl', color=GOLD)
+    asm.add(pads, name='pads', color=GOLD)
+    return asm
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     for name, asm in (('USB_C_Receptacle_HRO_TYPE-C-31-M-12', usb_c_hro()),
-                      ('SW_Push_1P1T_XKB_TS-1187A', ts1187a())):
+                      ('SW_Push_1P1T_XKB_TS-1187A', ts1187a()),
+                      ('ESP32-S3-WROOM-1U', wroom1u())):
         path = os.path.join(OUT, f'{name}.step')
         asm.save(path)
         print('wrote', path)

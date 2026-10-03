@@ -1,11 +1,11 @@
 # LR2021 + ESP32-S3 LoRa Plus board
 
-A 4-layer, 64 × 52 mm KiCad 9 board with:
+A 4-layer, 62 × 47 mm KiCad 9 board with:
 
 - **Semtech LR2021** LoRa Plus transceiver (QFN-32 5×5). Its matching networks follow Semtech's LR2021 reference design (switchless "direct-tie").
   - Sub-GHz path **868/915 MHz**, up to **+22 dBm** (PA_LF), on SMA **J5**.
   - **2.4 GHz** path, up to **+12 dBm** (PA_HF), on SMA **J6**.
-- **ESP32-S3-WROOM-1-N16R8** module (16 MB flash, 8 MB octal PSRAM, Wi-Fi/BLE PCB antenna).
+- **ESP32-S3-WROOM-1U-N16R8** module (16 MB flash, 8 MB octal PSRAM, LCSC C3013946). This is the U.FL variant with no PCB antenna, so the board needs no antenna keepout. Wi-Fi/BLE are not used; the U.FL is left unconnected (an antenna can still be clipped on later if needed).
 - **USB-C** wired straight to the ESP32-S3 native USB (GPIO19/20). It handles flashing, USB-CDC console and JTAG, with no USB-UART bridge.
 - Power from **USB-C 5 V**, a **5 V screw terminal** or a **3.3 V screw terminal**. Any combination can be connected at the same time.
 - RESET and BOOT buttons, a power LED, a user LED on GPIO2, and a 2×10 GPIO header.
@@ -30,7 +30,7 @@ The KiCad library has no 3D models for the HRO TYPE-C-31-M-12 USB-C receptacle o
 
 | Consumer | Typical | Peak | Source |
 |---|---|---|---|
-| ESP32-S3 (Wi-Fi TX 802.11b, 20.5 dBm) | 95 mA (RX/idle) | **355 mA** | ESP32-S3-WROOM-1 datasheet |
+| ESP32-S3 (Wi-Fi TX 802.11b, 20.5 dBm; worst case only, the radio is unused) | 95 mA (RX/idle) | **355 mA** | ESP32-S3-WROOM-1/1U datasheet |
 | LR2021 TX PA_LF +22 dBm, 915 MHz (SIMO, 3.3 V) | 105 mA | **~120 mA** | LR2021 DS rev 1.1, IDDTXLF1 / Fig 1-3 |
 | LR2021 TX PA_HF +12 dBm, 2.4 GHz | 24 mA | 24 mA | LR2021 DS Fig 1-7 |
 | LEDs, pull-ups | 3 mA | 3 mA | |
@@ -71,7 +71,7 @@ The schematic has one intentional ERC warning: the two LM66100 outputs (power-ou
 - **Layout**: The LR2021 is rotated so all its RF pins face the right board edge. Each band has a TX row and an RX row of 0402 parts, the same structure as Semtech's layout.
   - Shunt parts have their own ground via right at the pad.
   - The RF section was routed by hand and locked. The autorouter was fenced out of it.
-- **ESP32 antenna**: The module's antenna sits flush with the top edge. The footprint's own keepout (no copper on any layer) is kept clear.
+- **ESP32 radio**: The WROOM-1U has no PCB antenna, so there is no keepout and the module sits inside the board. With Wi-Fi/BLE disabled in firmware the ESP32 draws about 30–40 mA; the supply is still sized for the radio-on worst case.
 
 > **Tuning note.** Semtech's values were tuned on their own PCB with mostly 0201 parts. This board uses 0402 parts and a different layout, so the match is a good starting point, not a guarantee. Before running full power, check S11 and the TX output with a VNA or spectrum analyzer, and adjust the shunt capacitors if needed.
 
@@ -110,8 +110,8 @@ Other ESP32-S3 connections:
 
 ## PCB
 
-- **Size and stackup**: 64 × 52 mm, 4 layers, 1.6 mm, JLCPCB `JLC04161H-7628`.
-- **Mounting**: two M3 holes on the right edge. The rest of the perimeter is taken by the antenna keepout, USB-C, terminals and header.
+- **Size and stackup**: 62 × 47 mm, 4 layers, 1.6 mm, JLCPCB `JLC04161H-7628`.
+- **Mounting**: two M2 holes on the right side, between the SMA connectors and the header.
 
   | Layer | Use |
   |---|---|

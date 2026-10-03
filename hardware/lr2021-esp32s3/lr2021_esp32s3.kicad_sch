@@ -8213,14 +8213,14 @@
 				(justify left)
 			)
 		)
-		(property "Value" "ESP32-S3-WROOM-1-N16R8"
+		(property "Value" "ESP32-S3-WROOM-1U-N16R8"
 			(at 403.86 130 0)
 			(effects
 				(font (size 1.27 1.27))
 				(justify left)
 			)
 		)
-		(property "Footprint" "RF_Module:ESP32-S3-WROOM-1"
+		(property "Footprint" "RF_Module:ESP32-S3-WROOM-1U"
 			(at 419.1 99.06 0)
 			(effects
 				(font (size 1.27 1.27))
@@ -8234,14 +8234,14 @@
 				(hide yes)
 			)
 		)
-		(property "MPN" "ESP32-S3-WROOM-1-N16R8"
+		(property "MPN" "ESP32-S3-WROOM-1U-N16R8"
 			(at 419.1 99.06 0)
 			(effects
 				(font (size 1.27 1.27))
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C2913202"
+		(property "LCSC" "C3013946"
 			(at 419.1 99.06 0)
 			(effects
 				(font (size 1.27 1.27))
@@ -15278,7 +15278,7 @@
 				(font (size 1.27 1.27))
 			)
 		)
-		(property "Footprint" "MountingHole:MountingHole_3.2mm_M3"
+		(property "Footprint" "MountingHole:MountingHole_2.2mm_M2"
 			(at 525.78 330.2 0)
 			(effects
 				(font (size 1.27 1.27))
@@ -15319,7 +15319,7 @@
 				(font (size 1.27 1.27))
 			)
 		)
-		(property "Footprint" "MountingHole:MountingHole_3.2mm_M3"
+		(property "Footprint" "MountingHole:MountingHole_2.2mm_M2"
 			(at 541.02 330.2 0)
 			(effects
 				(font (size 1.27 1.27))
@@ -15666,7 +15666,7 @@
 		)
 		(uuid "28594cdb-ae96-593b-be48-c36b70142a24")
 	)
-	(text "ESP32-S3-WROOM-1-N16R8 (native USB on GPIO19/20; GPIO35-37 used by octal PSRAM)"
+	(text "ESP32-S3-WROOM-1U-N16R8, radio unused (native USB on GPIO19/20; GPIO35-37 = PSRAM)"
 		(exclude_from_sim no)
 		(at 330 18 0)
 		(effects

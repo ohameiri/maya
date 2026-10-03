@@ -281,8 +281,10 @@ ESP_NETS = {
     '35': 'GPIO42', '37': 'U0TXD', '36': 'U0RXD',
     '15': NC, '16': NC, '26': NC, '28': NC, '29': NC, '30': NC,
 }
-part('U5', 'RF_Module:ESP32-S3-WROOM-1', 'ESP32-S3-WROOM-1-N16R8', 'RF_Module:ESP32-S3-WROOM-1', 420, 100, 0, ESP_NETS,
-     MPN='ESP32-S3-WROOM-1-N16R8', LCSC='C2913202')
+# WROOM-1U: same pinout as the WROOM-1 symbol, but no PCB antenna (u.FL connector left
+# unconnected; Wi-Fi/BLE unused), so the board needs no antenna keepout.
+part('U5', 'RF_Module:ESP32-S3-WROOM-1', 'ESP32-S3-WROOM-1U-N16R8', 'RF_Module:ESP32-S3-WROOM-1U', 420, 100, 0, ESP_NETS,
+     MPN='ESP32-S3-WROOM-1U-N16R8', LCSC='C3013946')
 vres('R4', '10k', 345, 30, '+3V3', 'ESP_EN')
 vcap('C8', '1uF', 357, 30, 'ESP_EN')
 part('SW1', 'Switch:SW_Push', 'RESET', 'Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A', 340, 55, 0, {'1': 'ESP_EN', '2': 'GND'},
@@ -373,7 +375,7 @@ hind('L13', '2.4nH', 280, 380, 'RFI_HF', 'HF_RX', **RFL)
 
 # ---- Mechanical / flags -----------------------------------------------------------
 for i, (x, y) in enumerate([(525, 330), (540, 330)], 1):
-    part(f'H{i}', 'Mechanical:MountingHole', 'MountingHole', 'MountingHole:MountingHole_3.2mm_M3', x, y)
+    part(f'H{i}', 'Mechanical:MountingHole', 'MountingHole', 'MountingHole:MountingHole_2.2mm_M2', x, y)
 part('PWR_FLAG_GND', 'power:PWR_FLAG', 'PWR_FLAG', '', 20, 150, 0, {}, flag_net='GND')
 part('PWR_FLAG_5V', 'power:PWR_FLAG', 'PWR_FLAG', '', 200, 22, 0, {}, flag_net='+5V')
 part('PWR_FLAG_VBUS', 'power:PWR_FLAG', 'PWR_FLAG', '', 100, 22, 0, {}, flag_net='VBUS')
@@ -382,7 +384,7 @@ part('PWR_FLAG_3V3EXT', 'power:PWR_FLAG', 'PWR_FLAG', '', 190, 120, 0, {}, flag_
 NOTES = [
     (15, 18, 'POWER INPUT: USB-C 5V / screw-terminal 5V -> Schottky OR -> AP7361C 1A LDO; external 3.3V and LDO 3.3V '
              'combined by two LM66100 ideal diodes (highest source wins, reverse-current blocked)'),
-    (330, 18, 'ESP32-S3-WROOM-1-N16R8 (native USB on GPIO19/20; GPIO35-37 used by octal PSRAM)'),
+    (330, 18, 'ESP32-S3-WROOM-1U-N16R8, radio unused (native USB on GPIO19/20; GPIO35-37 = PSRAM)'),
     (15, 185, 'LR2021 core: SIMO DC-DC, 32MHz crystal with NTC compensation (Semtech reference design)'),
     (205, 185, 'RF: Semtech LR2021 reference design (switchless direct-tie). Top: 868/915MHz (PA_LF up to +22dBm). '
                'Bottom: 2.4GHz (PA_HF up to +12dBm). Keep layout tight, 50 ohm GCPW.'),
