@@ -71,17 +71,61 @@ def bom():
             w.writerow([mpn or describe(refs[0], val, fp), ','.join(refs), fp.split(':')[1], lcsc])
 
 
+# JLCPCB places each LCSC part using its own (EasyEDA) footprint, whose zero rotation,
+# pin-1 corner and origin can differ from KiCad's. Measured per LCSC part by overlaying
+# the EasyEDA pads on ours (see README, "Pre-production checks").
+#   rot: degrees added to the KiCad rotation
+#   shift: (x, y) mm in the footprint's own frame (KiCad orientation 0, y up)
+#   center: place at the pad centroid (KiCad origin is pin 1, JLC origin is the body centre)
+JLC_FIX = {
+    'C2286': dict(rot=180),                  # KT-0603R LED: EasyEDA pin 1 (cathode) on the right
+    'C7519': dict(rot=270),                  # USBLC6-2SC6, SOT-23-6
+    'C2869734': dict(rot=270),               # LM66100, SC-70-6
+    'C500795': dict(rot=180),                # AP7361C, SOT-223
+    'C5199907': dict(rot=270),               # SMA edge mount
+    'C42372518': dict(rot=270, center=True), # 2x10 header
+    'C474881': dict(center=True),            # KF301 screw terminal
+    'C3013946': dict(shift=(0.0, -0.48)),    # ESP32-S3-WROOM-1U
+    'C165948': dict(shift=(0.0, 1.53)),      # HRO TYPE-C-31-M-12
+}
+
+
+def _lcsc_by_ref():
+    out = {}
+    with open(os.path.join(FAB, f'{NAME}_bom_jlcpcb.csv')) as fh:
+        for r in csv.DictReader(fh):
+            for ref in r['Designator'].split(','):
+                out[ref.strip()] = r['LCSC Part #']
+    return out
+
+
 def cpl():
+    import math
+    import pcbnew
     raw = os.path.join(FAB, 'pos_raw.csv')
     cli('pcb', 'export', 'pos', '--format', 'csv', '--units', 'mm', '--side', 'front', '--exclude-dnp', '-o', raw, PCB)
+    board = pcbnew.LoadBoard(PCB)
+    lcsc = _lcsc_by_ref()
     with open(raw) as fh, open(os.path.join(FAB, f'{NAME}_cpl_jlcpcb.csv'), 'w', newline='') as out:
         w = csv.writer(out)
         w.writerow(['Designator', 'Mid X', 'Mid Y', 'Layer', 'Rotation'])
         for row in csv.DictReader(fh):
             if row['Package'].startswith('MountingHole'):
                 continue
-            w.writerow([row['Ref'], f"{float(row['PosX']):.4f}mm", f"{float(row['PosY']):.4f}mm",
-                        'Top' if row['Side'] == 'top' else 'Bottom', f"{float(row['Rot']):.1f}"])
+            x, y, r = float(row['PosX']), float(row['PosY']), float(row['Rot'])   # y up, rotation CCW
+            fix = JLC_FIX.get(lcsc.get(row['Ref']), {})
+            if fix.get('center'):
+                pads = board.FindFootprintByReference(row['Ref']).Pads()
+                x = sum(pcbnew.ToMM(p.GetPosition().x) for p in pads) / len(pads)
+                y = -sum(pcbnew.ToMM(p.GetPosition().y) for p in pads) / len(pads)
+            if 'shift' in fix:
+                a = math.radians(r)
+                sx, sy = fix['shift']
+                x += sx * math.cos(a) - sy * math.sin(a)
+                y += sx * math.sin(a) + sy * math.cos(a)
+            r = (r + fix.get('rot', 0)) % 360
+            w.writerow([row['Ref'], f"{x:.4f}mm", f"{y:.4f}mm",
+                        'Top' if row['Side'] == 'top' else 'Bottom', f"{r:.1f}"])
     os.remove(raw)
 
 

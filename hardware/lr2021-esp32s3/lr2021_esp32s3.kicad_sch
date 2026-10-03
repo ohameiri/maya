@@ -6185,7 +6185,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "100nF"
+		(property "Value" "1uF"
 			(at 190.5 62.23 0)
 			(effects
 				(font (size 1.27 1.27))
@@ -6206,14 +6206,14 @@
 				(hide yes)
 			)
 		)
-		(property "MPN" "CL05B104KO5NNNC"
+		(property "MPN" "CL05A105KA5NQNC"
 			(at 187.96 60.96 0)
 			(effects
 				(font (size 1.27 1.27))
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C1525"
+		(property "LCSC" "C52923"
 			(at 187.96 60.96 0)
 			(effects
 				(font (size 1.27 1.27))

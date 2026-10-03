@@ -253,7 +253,7 @@ part('D1', 'Device:D_Schottky', 'B5819W', 'Diode_SMD:D_SOD-123', 150, 40, 180, {
 part('D2', 'Device:D_Schottky', 'B5819W', 'Diode_SMD:D_SOD-123', 150, 60, 180, {'2': '+5V_EXT', '1': '+5V'},
      MPN='B5819W', LCSC='C8598')
 vcap('C1', '10uF', 175, 62, '+5V', fp=C0805)
-vcap('C2', '100nF', 187, 62, '+5V')
+vcap('C2', '1uF', 187, 62, '+5V')   # AP7361C input cap (1 uF recommended), at U2 pin 1
 part('U2', 'Regulator_Linear:AP7361C-33E', 'AP7361C-33E', 'Package_TO_SOT_SMD:SOT-223-3_TabPin2', 215, 42, 0,
      {'1': '+5V', '2': 'GND', '3': '+3V3_LDO'}, MPN='AP7361C-33E-13', LCSC='C500795')
 vcap('C3', '10uF', 240, 62, '+3V3_LDO', fp=C0805)

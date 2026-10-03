@@ -97,10 +97,10 @@ PLACE = {
     # Power path
     'D1': (114.8, 128.0, 0),
     'D2': (114.8, 131.0, 0),
-    'D3': (121.5, 132.6, 90),
+    'D3': (115.0, 133.5, 0),     # input TVS right under D2, on the +5V_EXT pad
     'C1': (119.2, 128.4, 90),
-    'C2': (121.0, 128.4, 90),
-    'U2': (128.0, 133.0, 0),
+    'C2': (133.45, 135.3, 0),    # LDO input cap, next to U2 pin 1 (AP7361C: as close as possible)
+    'U2': (128.0, 133.0, 180),   # OUT (pin 3) faces C3/C4
     'C3': (133.4, 131.1, 90),
     'C4': (135.0, 131.1, 90),
     'C5': (118.9, 132.4, 90),
@@ -775,7 +775,7 @@ class Builder:
     def silkscreen(self):
         """Hide reference designators of small parts on silk (they stay on F.Fab for the
         assembly drawing) and add functional labels."""
-        keep = ('U6', 'J1', 'U2', 'U3', 'U4')
+        keep = ('U6', 'J1', 'U3', 'U4')
         for ref, fp in self.fps.items():
             fld = fp.Reference()
             if ref.startswith('H') or ref not in keep:
@@ -831,6 +831,15 @@ class Builder:
         self.track('/+3V3_LDO', [top, (top[0], low[1]), low], w=0.3, layer=pcbnew.B_Cu)
         self.via('/+3V3_LDO', top)
         self.via('/+3V3_LDO', low)
+        # U4 pin 1 (+3V3_EXT): C1 (LDO input) now sits left of it, so drop to an inner via
+        # right at the pin and let the router bring +3V3_EXT in from B.Cu.
+        u4 = self.padpos('U4', '/+3V3_EXT')
+        u4v = (u4[0] - 1.35, u4[1] - 0.35)
+        self.track('/+3V3_EXT', [u4, (u4v[0] + 0.35, u4[1]), u4v], w=0.4)
+        self.via('/+3V3_EXT', u4v)
+        d2 = self.padpos('D2', '/+5V_EXT')
+        d3 = self.padpos('D3', '/+5V_EXT')
+        self.track('/+5V_EXT', [d3, (d2[0], d3[1]), d2], w=0.5)
         r3 = self.padpos('R3', '/LED_PWR')
         d4 = self.padpos('D4', '/LED_PWR')
         x = (r3[0] + d4[0]) / 2
