@@ -142,8 +142,11 @@ Other ESP32-S3 connections:
   | `lr2021_esp32s3_bom.csv` | Full BOM with specs and DNP parts |
 
 - **Docs** in [`docs/`](docs): schematic PDF, per-layer PCB PDF and PNG previews.
-- **BOM**: Parts with known LCSC numbers have them filled in. For the RF passives, follow the spec column: C0G/NP0 with ±0.1 pF tolerance, and Murata LQW15AN (or equivalent high-Q wire-wound) inductors. Generic passives can be matched with JLCPCB's BOM tool.
-- **Not in the JLCPCB stock catalog**: the **LR2021IMLTRT** is available from Semtech distributors (Mouser, DigiKey). The **edge-mount SMA connectors** (footprint for Samtec SMA-J-P-H-ST-EM1, 1.6 mm board) are usually hand-soldered.
+- **BOM**: every placed part has an LCSC number (stock checked in JLCPCB's parts search, October 2026). The numbers live in `scripts/gen_schematic.py` (the `SOURCING` table and the per-part `LCSC=` fields). Generic passives use JLCPCB Basic parts where one fits, to avoid the Extended-part fee. RF capacitors under 10 pF are ±0.1 pF (B grade).
+  - **RF inductor substitutions**: L10 (1.6 nH) is a Microgate MWSD1005 wire-wound part because the LQW15AN1N6 was out of stock. L11 (1.1 nH) is a TDK MHQ1005P high-Q multilayer part because no 1.1 nH wire-wound part was stocked. Both are ±0.1–0.3 nH. Check them during RF tuning.
+  - **LEDs**: PWR is green AlInGaP (Lite-On LTST-C190KGKT) and USR is red. Both have Vf ≈ 2 V, so the 1 kΩ resistors on 3.3 V give about 1 mA. InGaN green or blue LEDs (Vf ≈ 3 V) would barely light with these resistors.
+- **LR2021IMLTRT (U6)**: listed at JLCPCB/LCSC as **C49421489** (about $15), but stock was **0** when checked. Either use JLCPCB Global Sourcing (they buy it from Mouser/DigiKey; this adds lead time) or send consigned parts. Check stock again just before ordering.
+- **Through-hole and edge parts** (screw terminals, GPIO header, edge-mount SMA C5199907): JLCPCB can assemble them for an extra fee, or they can be hand-soldered.
 - **Pick-and-place rotations**: check them in JLCPCB's preview. QFN, SOT-223 and the module are the usual offenders.
 
 ## Rebuilding

@@ -295,7 +295,7 @@ part('SW2', 'Switch:SW_Push', 'BOOT', 'Button_Switch_SMD:SW_Push_1P1T_XKB_TS-118
 vcap('C9', '22uF', 470, 30, '+3V3', fp=C0805)
 vcap('C10', '100nF', 482, 30, '+3V3')
 vres('R6', '1k', 480, 135, 'LED_USER', 'LED_USER_A')
-part('D5', 'Device:LED', 'BLUE', 'LED_SMD:LED_0603_1608Metric', 480, 165, 90, {'2': 'LED_USER_A', '1': 'GND'})
+part('D5', 'Device:LED', 'RED', 'LED_SMD:LED_0603_1608Metric', 480, 165, 90, {'2': 'LED_USER_A', '1': 'GND'})
 vres('R7', '10k', 494, 30, '+3V3', 'LR_NSS')
 HDR = {'1': '+3V3', '2': '+5V', '3': 'GPIO4', '4': 'GPIO5', '5': 'GPIO6', '6': 'GPIO7', '7': 'GPIO9', '8': 'GPIO48',
        '9': 'GPIO38', '10': 'GPIO39', '11': 'GPIO40', '12': 'GPIO41', '13': 'GPIO42', '14': 'GPIO1',
@@ -380,6 +380,53 @@ part('PWR_FLAG_GND', 'power:PWR_FLAG', 'PWR_FLAG', '', 20, 150, 0, {}, flag_net=
 part('PWR_FLAG_5V', 'power:PWR_FLAG', 'PWR_FLAG', '', 200, 22, 0, {}, flag_net='+5V')
 part('PWR_FLAG_VBUS', 'power:PWR_FLAG', 'PWR_FLAG', '', 100, 22, 0, {}, flag_net='VBUS')
 part('PWR_FLAG_3V3EXT', 'power:PWR_FLAG', 'PWR_FLAG', '', 190, 120, 0, {}, flag_net='+3V3_EXT')
+
+# ---- JLCPCB / LCSC sourcing (stock checked at jlcpcb.com parts search, 2026-10) ----
+# Parts placed above without an LCSC number. Basic-library parts where one fits; RF
+# capacitors under 10 pF are +/-0.1 pF (B) grade. LEDs are AlInGaP (Vf ~2 V) so the
+# 1k resistors on 3.3 V still give ~1 mA; InGaN green/blue (Vf ~3 V) would barely light.
+SOURCING = {
+    '10uF': ('CL21A106KAYNNNE', 'C15850'),          # 25 V, basic
+    '100nF': ('CL05B104KO5NNNC', 'C1525'),          # basic
+    '22uF': ('CL21A226MAQNNNE', 'C45783'),          # 25 V, basic
+    '1uF': ('CL05A105KA5NQNC', 'C52923'),           # 25 V, basic
+    '4.7uF': ('CL05A475MP5NRNC', 'C23733'),         # 10 V, basic
+    '2.2uF': ('CL05A225KP5NSNC', 'C107369'),        # 10 V
+    '1nF': ('0402B102K500NT', 'C1523'),             # basic
+    '47pF': ('CC0402JRNPO9BN470', 'C60137'),
+    '22pF': ('0402CG220J500NT', 'C1555'),           # basic
+    '18pF': ('0402CG180J500NT', 'C1549'),           # basic
+    '7.5pF': ('CQ0402BRNPO9BN7R5', 'C1855318'),
+    '6.8pF': ('CC0402BRNPO9BN6R8', 'C327291'),
+    '3.9pF': ('CC0402BRNPO9BN3R9', 'C505474'),
+    '2.7pF': ('CC0402BRNPO9BN2R7', 'C326937'),
+    '2.2pF': ('CC0402BRNPO9BN2R2', 'C325452'),
+    '2.0pF': ('CC0402BRNPO9BN2R0', 'C281756'),
+    '1.8pF': ('CC0402BRNPO9BN1R8', 'C327209'),
+    '1.2pF': ('CC0402BRNPO9BN1R2', 'C327292'),
+    '1.1pF': ('RF15N1R1B500CT', 'C180259'),
+    '5.1k': ('0402WGF5101TCE', 'C25905'),           # basic
+    '1k': ('0402WGF1001TCE', 'C11702'),             # basic
+    '10k': ('0402WGF1002TCE', 'C25744'),            # basic
+    '120k': ('0402WGF1203TCE', 'C25750'),
+    '2.4nH': ('LQW15AN2N4B00D', 'C113113'),
+    '1.6nH': ('MWSD1005C1N6STM01', 'C778760'),      # wire-wound; LQW15AN1N6 is out of stock
+    '1.1nH': ('MHQ1005P1N1BT000', 'C1332701'),      # high-Q multilayer; no 1.1 nH wire-wound in stock
+    '32MHz': ('NX2016SA-32M-EXS00A-CS06465', 'C1986260'),  # NDK, CL 10 pF, +/-10 ppm
+    'GREEN': ('LTST-C190KGKT', 'C125094'),          # AlInGaP 574 nm
+    'RED': ('KT-0603R', 'C2286'),                   # basic
+    'GPIO': ('HX PZ2.54-2x10P ZZ', 'C42372518'),
+    'LR2021IMLTRT': ('LR2021IMLTRT', 'C49421489'),
+}
+for _p in parts:
+    _f = _p['fields']
+    if _p['dnp'] or _f.get('LCSC') or _p['ref'].startswith(('H', 'PWR_FLAG')):
+        continue
+    if _p['ref'] in ('J5', 'J6'):
+        _f['LCSC'] = 'C5199907'
+    elif _p['value'] in SOURCING:
+        _f.setdefault('MPN', SOURCING[_p['value']][0])
+        _f['LCSC'] = SOURCING[_p['value']][1]
 
 NOTES = [
     (15, 18, 'POWER INPUT: USB-C 5V / screw-terminal 5V -> Schottky OR -> AP7361C 1A LDO; external 3.3V and LDO 3.3V '

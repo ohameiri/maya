@@ -7295,7 +7295,7 @@
 				)
 			)
 		)
-		(property "Value" "BLUE"
+		(property "Value" "RED"
 			(at 0 1.43 0)
 			(layer "F.Fab")
 			(uuid "1b1572f0-8faf-4e61-b130-d89ff444adab")
