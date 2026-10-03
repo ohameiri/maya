@@ -9,6 +9,7 @@ Run with the system python that ships the pcbnew module:  /usr/bin/python3 gen_p
 """
 import math
 import os
+import re
 import subprocess
 import sys
 
@@ -337,10 +338,6 @@ class Builder:
             if fp is None:
                 raise SystemExit(f'footprint {c["fp"]} not found for {ref}')
             fp.SetFPIDAsString(c['fp'])
-            for m in fp.Models():  # models missing from the KiCad library: use ours (gen_3d_models.py)
-                base = os.path.basename(m.m_Filename)
-                if base in LOCAL_MODELS:
-                    m.m_Filename = '${KIPRJMOD}/lib/3d/' + base
             fp.SetReference(ref)
             fp.SetValue(c['value'])
             fp.SetPath(pcbnew.KIID_PATH('/' + c['uuid']))
@@ -835,6 +832,13 @@ class Builder:
         self.ground_pours()
         self.board.BuildConnectivity()
         pcbnew.SaveBoard(PCB, self.board)
+        # Models missing from the KiCad library point to ours (gen_3d_models.py). Done on the
+        # saved text because FOOTPRINT.Models() hands Python a copy.
+        text = open(PCB).read()
+        for base in LOCAL_MODELS:
+            text = re.sub(r'\$\{KICAD9_3DMODEL_DIR\}/[^/"]+\.3dshapes/' + re.escape(base),
+                          '${KIPRJMOD}/lib/3d/' + base, text)
+        open(PCB, 'w').write(text)
         print('saved', PCB)
 
 

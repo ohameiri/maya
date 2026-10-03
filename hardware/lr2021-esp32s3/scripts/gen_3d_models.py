@@ -28,7 +28,8 @@ def usb_c_hro():
     y_front, y_rear = -3.65, 3.65                  # model Y (footprint front is +Y -> model -Y)
     shell = (cq.Workplane('XZ', origin=(0, y_rear, H / 2)).rect(W, H).extrude(L)
              .edges('|Y').fillet(H / 2 - 0.01))
-    cavity = (cq.Workplane('XZ', origin=(0, y_front + 6.2, H / 2)).rect(W - 0.6, H - 0.7).extrude(6.2)
+    # cut runs 0.3 mm past the front face so the opening is really open
+    cavity = (cq.Workplane('XZ', origin=(0, y_front + 6.2, H / 2)).rect(W - 0.6, H - 0.7).extrude(6.5)
               .edges('|Y').fillet((H - 0.7) / 2 - 0.01))
     shell = shell.cut(cavity)
     tongue = cq.Workplane('XY').box(6.6, 4.5, 0.7).translate((0, y_front + 0.3 + 2.25, H / 2))
