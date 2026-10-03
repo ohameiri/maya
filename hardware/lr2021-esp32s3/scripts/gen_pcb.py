@@ -97,7 +97,7 @@ PLACE = {
     # Power path
     'D1': (114.8, 128.0, 0),
     'D2': (114.8, 131.0, 0),
-    'D3': (115.0, 133.5, 0),     # input TVS right under D2, on the +5V_EXT pad
+    'D3': (121.5, 132.6, 90),
     'C1': (119.2, 128.4, 90),
     'C2': (133.45, 135.3, 0),    # LDO input cap, next to U2 pin 1 (AP7361C: as close as possible)
     'U2': (128.0, 133.0, 180),   # OUT (pin 3) faces C3/C4
@@ -831,9 +831,6 @@ class Builder:
         self.track('/+3V3_LDO', [top, (top[0], low[1]), low], w=0.3, layer=pcbnew.B_Cu)
         self.via('/+3V3_LDO', top)
         self.via('/+3V3_LDO', low)
-        d2 = self.padpos('D2', '/+5V_EXT')
-        d3 = self.padpos('D3', '/+5V_EXT')
-        self.track('/+5V_EXT', [d3, (d2[0], d3[1]), d2], w=0.5)
         r3 = self.padpos('R3', '/LED_PWR')
         d4 = self.padpos('D4', '/LED_PWR')
         x = (r3[0] + d4[0]) / 2
