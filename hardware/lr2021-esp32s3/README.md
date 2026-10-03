@@ -170,6 +170,26 @@ cd scripts
 5. `route.py`: Freerouting plus via clean-up and stitching. Freerouting is not deterministic, so routing is retried until DRC reports zero unconnected items.
 6. `export_fab.py`: fabrication files and docs.
 
+## Pre-production checks
+
+Run before ordering (October 2026). Re-run after any change: `build.py`, then `scripts/check_cpl.py` (needs network access to easyeda.com).
+
+| # | Check | Result |
+|---|---|---|
+| 1 | ERC, DRC with schematic parity, actual minimums vs JLCPCB 4-layer limits | Pass. Min track 0.20 mm (limit 0.09), vias 0.5/0.25 and 0.6/0.3 mm, annular ring 0.125 mm |
+| 2 | Netlist: single-part nets, decoupling distance per IC supply pin | Pass. No orphan nets. LDO input cap 1.8 mm, output cap 2.6 mm, LR2021 VBAT 1.4 mm, ESP32 1.8 mm |
+| 3 | Pinouts vs datasheets: LR2021 (Table 2-1 and the §23.4 reference schematic), AP7361C SOT-223, LM66100, ESP32-S3-WROOM-1U, crystal | Pass. VDCC1/VDCC2 and VPAX1/VPAX2 are joined through ferrite beads, as in the Semtech reference design |
+| 4 | Pick-and-place vs JLCPCB's own (EasyEDA) footprints, every part | Pass after corrections in `export_fab.py` (`JLC_FIX`). Without them the red LED would have been placed reversed and five other part types rotated or offset |
+| 5 | Gerbers and drill: layer set, outline, hole count vs board | Pass. 11 layers, 62 × 47 mm, 239 PTH + 4 NPTH holes, matching the board |
+| 6 | RF: GCPW impedance on JLC04161H-7628 (7628 prepreg 0.2104 mm, Dk 4.4), line geometry, ground under the feeds | Pass. 0.38 mm line with 0.21 mm gap gives 49.7 Ω, and In1 GND is continuous under the whole feed |
+| 7 | Power: trace widths and vias on the 1 A paths | Pass. +5V/VBUS 0.5 mm, narrowest +3V3_LDO segment 0.3 mm on 1 oz outer copper (≈1 A at 10 °C rise) |
+| 8 | Mechanical: mounting-hole keep-clear, edge connectors | Pass. Nearest part is 6.9 mm from a hole centre. USB-C and SMA overhang the edge as intended |
+
+Accepted deviations:
+- LM66100 ST pins are left open. They are open-drain outputs, so this is harmless; TI suggests tying them to GND.
+- U4's input capacitor (C5, 10 µF) sits at the 3.3 V terminal, 19 mm from U4. U4 is a switch, not a regulator, so this only affects inrush dip.
+- C20 (7.5 pF) has no EasyEDA footprint for the position check. It is a symmetric 0402 capacitor; check it in the JLCPCB preview.
+
 ## Verification status
 
 - **ERC**: 0 errors. One intentional warning: the two LM66100 power outputs are tied together.
