@@ -117,6 +117,11 @@ def main():
         temp.append(b.zone(None, all_cu, rect(x - 8.0, y - 3.5, G.BX1 - 0.2, y + 3.5), rule_area=True))
     # Gap between the QFN RF pins and the risers (only the hand-routed escapes live here).
     temp.append(b.zone(None, all_cu, rect(ux + 2.9, uy - 2.2, ux + 4.05, uy + 0.95), rule_area=True))
+    # Edge margin so routed copper keeps the 0.3 mm copper-to-edge rule.
+    e = 0.5
+    for r_ in (rect(G.BX0, G.BY0, G.BX1, G.BY0 + e), rect(G.BX0, G.BY1 - e, G.BX1, G.BY1),
+               rect(G.BX0, G.BY0, G.BX0 + e, G.BY1), rect(G.BX1 - e, G.BY0, G.BX1, G.BY1)):
+        temp.append(b.zone(None, [pcbnew.F_Cu, pcbnew.B_Cu], r_, rule_area=True))
     # Bottom-layer VR_PA link column.
     temp.append(b.zone(None, [pcbnew.B_Cu], rect(ux + 3.55, uy - 11.6, ux + 4.35, uy + 11.6), rule_area=True))
 

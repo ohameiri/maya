@@ -1,6 +1,6 @@
 # LR2021 + ESP32-S3 LoRa Plus board
 
-A 4-layer, 90 × 65 mm KiCad 9 board with:
+A 4-layer, 64 × 52 mm KiCad 9 board with:
 
 - **Semtech LR2021** LoRa Plus transceiver (QFN-32 5×5). Its matching networks follow Semtech's LR2021 reference design (switchless "direct-tie").
   - Sub-GHz path **868/915 MHz**, up to **+22 dBm** (PA_LF), on SMA **J5**.
@@ -99,18 +99,19 @@ Other ESP32-S3 connections:
   | Pins | Signals |
   |---|---|
   | 1, 2 | 3V3, 5V |
-  | 3–16 | GPIO1, 4, 5, 6, 7, 15, 16, 17, 18, 38, 39, 40, 41, 42 |
-  | 17, 18 | U0TXD, U0RXD |
-  | 19, 20 | GND |
+  | 3–14 | GPIO4, 5, 6, 7, 9, 48, 38, 39, 40, 41, 42, 1 |
+  | 15, 16 | U0TXD, U0RXD |
+  | 17–20 | GND |
 
 - Not used:
   - GPIO35–37 are taken by the octal PSRAM.
   - The strapping pins GPIO3, GPIO45 and GPIO46 are left free.
-  - GPIO8, GPIO9 and GPIO48 are unconnected.
+  - GPIO8 and GPIO15–18 are unconnected. On the compact board there is no room to route them from the module's left side to the header.
 
 ## PCB
 
-- **Size and stackup**: 90 × 65 mm, 4 layers, 1.6 mm, JLCPCB `JLC04161H-7628`.
+- **Size and stackup**: 64 × 52 mm, 4 layers, 1.6 mm, JLCPCB `JLC04161H-7628`.
+- **Mounting**: two M3 holes on the right edge. The rest of the perimeter is taken by the antenna keepout, USB-C, terminals and header.
 
   | Layer | Use |
   |---|---|

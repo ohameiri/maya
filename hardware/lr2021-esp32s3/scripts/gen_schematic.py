@@ -274,10 +274,10 @@ part('D4', 'Device:LED', 'GREEN', 'LED_SMD:LED_0603_1608Metric', 305, 135, 90, {
 ESP_NETS = {
     '2': '+3V3', '1': 'GND', '40': 'GND', '41': 'GND', '3': 'ESP_EN', '27': 'BOOT',
     '13': 'USB_DN', '14': 'USB_DP',
-    '17': NC, '18': 'LR_NSS', '19': 'LR_MOSI', '20': 'LR_SCK', '21': 'LR_MISO', '22': 'LR_NRESET',
-    '23': 'LR_BUSY', '24': 'LR_DIO9', '25': NC, '12': NC, '38': 'LED_USER',
-    '39': 'GPIO1', '4': 'GPIO4', '5': 'GPIO5', '6': 'GPIO6', '7': 'GPIO7', '8': 'GPIO15', '9': 'GPIO16',
-    '10': 'GPIO17', '11': 'GPIO18', '31': 'GPIO38', '32': 'GPIO39', '33': 'GPIO40', '34': 'GPIO41',
+    '17': 'GPIO9', '18': 'LR_NSS', '19': 'LR_MOSI', '20': 'LR_SCK', '21': 'LR_MISO', '22': 'LR_NRESET',
+    '23': 'LR_BUSY', '24': 'LR_DIO9', '25': 'GPIO48', '12': NC, '38': 'LED_USER',
+    '39': 'GPIO1', '4': 'GPIO4', '5': 'GPIO5', '6': 'GPIO6', '7': 'GPIO7', '8': NC, '9': NC,
+    '10': NC, '11': NC, '31': 'GPIO38', '32': 'GPIO39', '33': 'GPIO40', '34': 'GPIO41',
     '35': 'GPIO42', '37': 'U0TXD', '36': 'U0RXD',
     '15': NC, '16': NC, '26': NC, '28': NC, '29': NC, '30': NC,
 }
@@ -295,9 +295,9 @@ vcap('C10', '100nF', 482, 30, '+3V3')
 vres('R6', '1k', 480, 135, 'LED_USER', 'LED_USER_A')
 part('D5', 'Device:LED', 'BLUE', 'LED_SMD:LED_0603_1608Metric', 480, 165, 90, {'2': 'LED_USER_A', '1': 'GND'})
 vres('R7', '10k', 494, 30, '+3V3', 'LR_NSS')
-HDR = {'1': '+3V3', '2': '+5V', '3': 'GPIO1', '4': 'GPIO4', '5': 'GPIO5', '6': 'GPIO6', '7': 'GPIO7', '8': 'GPIO15',
-       '9': 'GPIO16', '10': 'GPIO17', '11': 'GPIO18', '12': 'GPIO38', '13': 'GPIO39', '14': 'GPIO40',
-       '15': 'GPIO41', '16': 'GPIO42', '17': 'U0TXD', '18': 'U0RXD', '19': 'GND', '20': 'GND'}
+HDR = {'1': '+3V3', '2': '+5V', '3': 'GPIO4', '4': 'GPIO5', '5': 'GPIO6', '6': 'GPIO7', '7': 'GPIO9', '8': 'GPIO48',
+       '9': 'GPIO38', '10': 'GPIO39', '11': 'GPIO40', '12': 'GPIO41', '13': 'GPIO42', '14': 'GPIO1',
+       '15': 'U0TXD', '16': 'U0RXD', '17': 'GND', '18': 'GND', '19': 'GND', '20': 'GND'}
 part('J4', 'Connector_Generic:Conn_02x10_Odd_Even', 'GPIO', 'Connector_PinHeader_2.54mm:PinHeader_2x10_P2.54mm_Vertical',
      545, 100, 0, HDR)
 
@@ -372,7 +372,7 @@ vcap('C33', 'DNP', 310, 398, 'HF_RX', dnp=True, **RFC)
 hind('L13', '2.4nH', 280, 380, 'RFI_HF', 'HF_RX', **RFL)
 
 # ---- Mechanical / flags -----------------------------------------------------------
-for i, (x, y) in enumerate([(525, 330), (540, 330), (555, 330), (570, 330)], 1):
+for i, (x, y) in enumerate([(525, 330), (540, 330)], 1):
     part(f'H{i}', 'Mechanical:MountingHole', 'MountingHole', 'MountingHole:MountingHole_3.2mm_M3', x, y)
 part('PWR_FLAG_GND', 'power:PWR_FLAG', 'PWR_FLAG', '', 20, 150, 0, {}, flag_net='GND')
 part('PWR_FLAG_5V', 'power:PWR_FLAG', 'PWR_FLAG', '', 200, 22, 0, {}, flag_net='+5V')

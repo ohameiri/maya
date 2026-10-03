@@ -27,11 +27,11 @@ LOCAL_MODELS = {'USB_C_Receptacle_HRO_TYPE-C-31-M-12.step', 'SW_Push_1P1T_XKB_TS
 MM = pcbnew.FromMM
 
 # Board outline (mm). KiCad origin offset keeps the board inside the A4 sheet.
-BX0, BY0, BX1, BY1 = 100.0, 100.0, 190.0, 165.0
+BX0, BY0, BX1, BY1 = 100.0, 100.0, 164.0, 152.0
 CORNER_R = 2.0
 
 # LR2021 centre; it is rotated 270 deg so its RF pins (25-32) face the right edge.
-UX, UY = 158.0, 130.0
+UX, UY = 133.0, 118.0
 RF_W = 0.38       # 50 ohm GCPW on L1 over the In1 ground (JLC04161H-7628)
 PIN_W = 0.25      # width used right at the 0.5 mm-pitch QFN pads
 VIA_D, VIA_DR = 0.6, 0.3
@@ -84,54 +84,54 @@ def read_netlist():
 # ref: (x, y, rotation). RF parts are placed through place_rf() below so the
 # pad carrying a given net ends up on the requested side.
 PLACE = {
-    # ESP32-S3 module: antenna end flush with the top edge (module is 25.5 mm tall).
-    'U5': (125.0, 113.0, 0),
+    # Compact 64 x 52 mm layout. ESP32-S3 module in the top-left corner with its antenna
+    # end flush with the top edge (module is 25.5 mm tall).
+    'U5': (113.0, 113.0, 0),
     'U6': (UX, UY, 270),
-    # USB-C on the left edge, opening facing out.
-    'J1': (103.0, 128.0, 270),
-    'U1': (112.5, 125.5, 0),
-    'R1': (110.5, 131.6, 0),
-    'R2': (110.5, 133.2, 0),
+    # USB-C on the left edge below the module, opening facing out.
+    'J1': (103.0, 133.0, 270),
+    'U1': (112.0, 130.6, 0),
+    'R1': (110.4, 136.8, 0),
+    'R2': (110.4, 138.4, 0),
     # Power path
-    'D1': (114.0, 137.5, 0),
-    'D2': (114.0, 141.5, 0),
-    'D3': (114.0, 150.0, 0),
-    'C1': (118.8, 137.8, 90),
-    'C2': (120.6, 137.8, 90),
-    'U2': (126.0, 140.5, 0),
-    'C3': (131.8, 138.2, 90),
-    'C4': (133.6, 138.2, 90),
-    'C5': (119.0, 152.5, 0),
-    'U3': (137.5, 140.0, 0),
-    'U4': (137.5, 145.5, 0),
-    'C6': (142.0, 140.0, 90),
-    'C7': (143.8, 140.0, 90),
+    'D1': (114.8, 134.0, 0),
+    'D2': (114.8, 137.0, 0),
+    'D3': (121.5, 138.6, 90),
+    'C1': (119.2, 134.4, 90),
+    'C2': (121.0, 134.4, 90),
+    'U2': (128.0, 138.5, 0),
+    'C3': (133.7, 136.6, 90),
+    'C4': (135.5, 136.6, 90),
+    'C5': (118.9, 138.4, 90),
+    'U3': (138.6, 136.0, 0),
+    'U4': (138.6, 140.6, 0),
+    'C6': (142.4, 136.4, 90),
+    'C7': (144.2, 136.4, 90),
     # Screw terminals on the bottom edge. At 0 deg the footprint's wire-entry side (+Y)
     # faces the board edge; body spans Y-5.25 .. Y+4.65.
-    'J2': (107.0, 159.8, 0),
-    'J3': (122.0, 159.8, 0),
-    # ESP32 support
-    'C9': (112.0, 109.6, 90),
-    'C10': (114.0, 109.2, 90),
-    'R4': (112.2, 113.6, 0),
-    'C8': (112.2, 115.3, 0),
-    'SW1': (105.5, 112.0, 0),
-    'SW2': (143.0, 117.0, 0),
-    'R5': (137.0, 122.5, 90),
-    'D5': (141.0, 109.5, 0),
-    'R6': (141.0, 111.5, 0),
-    'D4': (146.0, 109.5, 0),
-    'R3': (146.0, 111.5, 0),
-    'J4': (135.0, 161.5, 90),
+    'J2': (103.0, 147.0, 0),
+    'J3': (114.5, 147.0, 0),
+    # ESP32 support: decoupling and EN RC in the strip left of the module
+    'C9': (101.6, 111.0, 90),
+    'C10': (101.6, 108.2, 90),
+    'R4': (101.6, 114.0, 90),
+    'C8': (101.6, 116.6, 90),
+    'SW1': (125.6, 147.2, 90),
+    'SW2': (132.0, 147.2, 90),
+    'R5': (123.6, 128.6, 90),
+    'R7': (123.6, 131.6, 90),
+    'D5': (147.8, 136.6, 0),
+    'R6': (147.8, 138.6, 0),
+    'D4': (151.6, 136.6, 0),
+    'R3': (151.6, 138.6, 0),
+    'J4': (138.4, 149.6, 90),
     # LR2021 support: crystal on top (NTC divider left of it), SIMO parts on the left,
     # VBAT decoupling below. Parts whose pad order matters are in _rf_parts().
     'Y1': (*R(-0.6, -6.0), 270),
     'C16': (*R(1.7, -7.4), 90),
-    'R7': (139.5, 122.5, 90),
-    'H1': (186.0, 104.0, 0),
-    'H2': (186.0, 161.0, 0),
-    'H3': (104.0, 146.0, 0),
-    'H4': (154.0, 104.0, 0),
+    # Two M3 holes on the right edge (the rest of the perimeter is taken by connectors).
+    'H1': (160.4, 118.0, 0),
+    'H2': (160.4, 141.0, 0),
 }
 
 
@@ -554,8 +554,8 @@ class Builder:
         feeds = []
         for end, ref, net in ((ant_hf_end, 'J6', '/ANT_HF'), (ant_lf_end, 'J5', '/ANT_LF')):
             j = pp(ref, net)
-            xd = j[0] - 4.0 - abs(j[1] - end[1])
-            self.track(net, [end, (xd, end[1]), (j[0] - 4.0, j[1]), j])
+            xd = j[0] - 3.0 - abs(j[1] - end[1])
+            self.track(net, [end, (xd, end[1]), (j[0] - 3.0, j[1]), j])
             feeds.append((end, xd, j))
 
         # ---- VR_PA: pin 1 -> C17 -> HF choke L8/C26; In2 link to the LF choke L2/C18
@@ -598,7 +598,7 @@ class Builder:
                 for s in (-1.0, 1.0):
                     self.via('GND', (x, end[1] + s))
                 x += 1.6
-            for dx in (-3.6, -2.0):
+            for dx in (-2.0, -1.0):
                 for s in (-1.3, 1.3):
                     self.via('GND', (j[0] + dx, j[1] + s))
         self.rf_feeds = feeds
@@ -774,7 +774,7 @@ class Builder:
     def silkscreen(self):
         """Hide reference designators of small parts on silk (they stay on F.Fab for the
         assembly drawing) and add functional labels."""
-        keep = ('U6', 'J1', 'J2', 'J3', 'J4', 'J5', 'J6', 'U2', 'U3', 'U4', 'U1')
+        keep = ('U6', 'J1', 'J4', 'U2', 'U3', 'U4')
         for ref, fp in self.fps.items():
             fld = fp.Reference()
             if ref.startswith('H') or ref not in keep:
@@ -783,22 +783,21 @@ class Builder:
                 fld.SetTextSize(pcbnew.VECTOR2I(MM(0.8), MM(0.8)))
                 fld.SetTextThickness(MM(0.12))
         labels = [
-            ('LR2021 + ESP32-S3  rev 1.0', (160.0, 151.0), 1.2, 0),
-            ('USB-C', (110.0, 121.7), 0.9, 0),
+            ('LR2021 + ESP32-S3  rev 1.1', (146.0, 143.4), 1.0, 0),
             # Pin 1 (+, square pad) is the left-hand terminal pin.
-            ('5V IN', (109.5, 152.3), 0.9, 0),
-            ('+', (107.0, 153.7), 1.0, 0),
-            ('-', (112.0, 153.7), 1.0, 0),
-            ('3V3 IN', (124.5, 152.3), 0.9, 0),
-            ('+', (122.0, 153.7), 1.0, 0),
-            ('-', (127.0, 153.7), 1.0, 0),
-            ('915 MHz', (183.0, UY + 13.0 + 4.6), 0.9, 0),
-            ('2.4 GHz', (183.0, UY - 13.0 - 4.6), 0.9, 0),
-            ('RESET', (105.5, 108.4), 0.8, 0),
-            ('BOOT', (143.0, 113.4), 0.8, 0),
-            ('GPIO  1:3V3  2:5V  19,20:GND', (147.0, 156.3), 0.8, 0),
-            ('USR', (141.0, 107.9), 0.8, 0),
-            ('PWR', (146.0, 107.9), 0.8, 0),
+            ('5V', (105.5, 140.6), 0.9, 0),
+            ('+', (103.0, 141.0), 1.0, 0),
+            ('-', (108.0, 141.0), 1.0, 0),
+            ('3V3', (117.0, 140.9), 0.9, 0),
+            ('+', (114.5, 141.0), 1.0, 0),
+            ('-', (119.5, 141.0), 1.0, 0),
+            ('915 MHz', (158.4, UY + 9.0), 0.8, 0),
+            ('2.4 GHz', (158.4, UY - 9.0), 0.8, 0),
+            ('RESET', (125.6, 142.6), 0.8, 0),
+            ('BOOT', (132.0, 142.6), 0.8, 0),
+            ('GPIO 1:3V3 2:5V 17-20:GND', (150.0, 144.7), 0.8, 0),
+            ('USR', (147.8, 135.0), 0.8, 0),
+            ('PWR', (151.6, 135.0), 0.8, 0),
         ]
         for text, (x, y), size, rot in labels:
             t = pcbnew.PCB_TEXT(self.board)
