@@ -831,12 +831,6 @@ class Builder:
         self.track('/+3V3_LDO', [top, (top[0], low[1]), low], w=0.3, layer=pcbnew.B_Cu)
         self.via('/+3V3_LDO', top)
         self.via('/+3V3_LDO', low)
-        # U4 pin 1 (+3V3_EXT): C1 (LDO input) now sits left of it, so drop to an inner via
-        # right at the pin and let the router bring +3V3_EXT in from B.Cu.
-        u4 = self.padpos('U4', '/+3V3_EXT')
-        u4v = (u4[0] - 1.35, u4[1] - 0.35)
-        self.track('/+3V3_EXT', [u4, (u4v[0] + 0.35, u4[1]), u4v], w=0.4)
-        self.via('/+3V3_EXT', u4v)
         d2 = self.padpos('D2', '/+5V_EXT')
         d3 = self.padpos('D3', '/+5V_EXT')
         self.track('/+5V_EXT', [d3, (d2[0], d3[1]), d2], w=0.5)
