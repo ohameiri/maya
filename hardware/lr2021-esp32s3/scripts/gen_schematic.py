@@ -345,8 +345,8 @@ vcap('C22', '3.9pF', 350, 245, 'LF_C', **RFC)
 hind('L5', '2.4nH', 370, 225, 'LF_C', 'ANT_LF', **RFL)
 vcap('C23', '1.8pF', 390, 245, 'ANT_LF', **RFC)
 vind('L6', '22nH', 402, 245, 'ANT_LF', 'GND', MPN='LQW15AN22NG00D', LCSC='C86129', **RFL)
-part('D6', 'Device:D_TVS', 'ESD101-B1-02ELS', 'Diode_SMD:D_0402_1005Metric', 414, 245, 90, {'2': 'ANT_LF', '1': 'GND'},
-     dnp=True, MPN='ESD101-B1-02ELS', Spec='Optional RF ESD, <=0.2pF, Vrwm>=5.5V')
+part('D6', 'Device:D_TVS', 'PESD0402V12', 'Diode_SMD:D_0402_1005Metric', 414, 245, 90, {'2': 'ANT_LF', '1': 'GND'},
+     MPN='PESD0402V12', LCSC='C19626255', Spec='Antenna ESD, 0.05pF, bidirectional, Vrwm 12V (Semtech ref populates this)')
 part('J5', 'Connector:Conn_Coaxial', 'SMA 915MHz', 'Connector_Coaxial:SMA_Samtec_SMA-J-P-H-ST-EM1_EdgeMount', 445, 225, 0,
      {'1': 'ANT_LF', '2': 'GND'}, ref_pos=(3, -3), val_pos=(3, 3.5), MPN='SMA-J-P-H-ST-EM1', Spec='SMA female edge mount, 1.6mm PCB')
 hcap('C24', '18pF', 370, 270, 'LF_RX', 'ANT_LF', **RFC)
@@ -365,8 +365,8 @@ vcap('C30', '1.2pF', 350, 355, 'HF_C', **RFC)
 hind('L11', '1.1nH', 370, 335, 'HF_C', 'ANT_HF', **RFL)
 vcap('C31', '2.0pF', 390, 355, 'ANT_HF', **RFC)
 vind('L12', 'DNP', 402, 355, 'ANT_HF', 'GND', dnp=True, **RFL)
-part('D7', 'Device:D_TVS', 'ESD101-B1-02ELS', 'Diode_SMD:D_0402_1005Metric', 414, 355, 90, {'2': 'ANT_HF', '1': 'GND'},
-     dnp=True, MPN='ESD101-B1-02ELS', Spec='Optional RF ESD, <=0.2pF, Vrwm>=5.5V')
+part('D7', 'Device:D_TVS', 'PESD0402V12', 'Diode_SMD:D_0402_1005Metric', 414, 355, 90, {'2': 'ANT_HF', '1': 'GND'},
+     MPN='PESD0402V12', LCSC='C19626255', Spec='Antenna ESD, 0.05pF, bidirectional, Vrwm 12V (Semtech ref populates this)')
 part('J6', 'Connector:Conn_Coaxial', 'SMA 2.4GHz', 'Connector_Coaxial:SMA_Samtec_SMA-J-P-H-ST-EM1_EdgeMount', 445, 335, 0,
      {'1': 'ANT_HF', '2': 'GND'}, ref_pos=(3, -3), val_pos=(3, 3.5), MPN='SMA-J-P-H-ST-EM1', Spec='SMA female edge mount, 1.6mm PCB')
 hcap('C32', '18pF', 330, 380, 'HF_RX', 'HF_C', **RFC)

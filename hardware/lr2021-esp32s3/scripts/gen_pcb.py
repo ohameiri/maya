@@ -24,7 +24,7 @@ PROJECT = 'lr2021_esp32s3'
 PCB = os.path.join(PROJ_DIR, f'{PROJECT}.kicad_pcb')
 FPLIB = '/usr/share/kicad/footprints'
 LOCAL_MODELS = {'USB_C_Receptacle_HRO_TYPE-C-31-M-12.step', 'SW_Push_1P1T_XKB_TS-1187A.step',
-                'ESP32-S3-WROOM-1U.step'}
+                'ESP32-S3-WROOM-1U.step', 'D_0402_1005Metric.step'}
 MM = pcbnew.FromMM
 
 # Board outline (mm). KiCad origin offset keeps the board inside the A4 sheet.

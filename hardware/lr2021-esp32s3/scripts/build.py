@@ -58,6 +58,10 @@ def main():
     else:
         raise SystemExit('routing did not converge; see /tmp/claude-0/drc_build.rpt')
     os.remove(preroute)
+    run(PY, 'add_rf_fence.py')
+    unconnected, errors, parity, _ = drc()
+    if unconnected or errors or parity:
+        raise SystemExit('DRC failed after adding the RF via fence; see /tmp/claude-0/drc_build.rpt')
     run(PY, 'export_fab.py')
 
 

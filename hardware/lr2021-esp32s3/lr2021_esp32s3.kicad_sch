@@ -13731,7 +13731,7 @@
 		(exclude_from_sim no)
 		(in_bom yes)
 		(on_board yes)
-		(dnp yes)
+		(dnp no)
 		(uuid "324a7710-e832-5a4e-a2c7-e22c332aa199")
 		(property "Reference" "D6"
 			(at 416.56 242.57 90)
@@ -13740,7 +13740,7 @@
 				(justify right)
 			)
 		)
-		(property "Value" "ESD101-B1-02ELS"
+		(property "Value" "PESD0402V12"
 			(at 416.56 245.11 90)
 			(effects
 				(font (size 1.27 1.27))
@@ -13761,14 +13761,21 @@
 				(hide yes)
 			)
 		)
-		(property "MPN" "ESD101-B1-02ELS"
+		(property "MPN" "PESD0402V12"
 			(at 414.02 243.84 0)
 			(effects
 				(font (size 1.27 1.27))
 				(hide yes)
 			)
 		)
-		(property "Spec" "Optional RF ESD, <=0.2pF, Vrwm>=5.5V"
+		(property "LCSC" "C19626255"
+			(at 414.02 243.84 0)
+			(effects
+				(font (size 1.27 1.27))
+				(hide yes)
+			)
+		)
+		(property "Spec" "Antenna ESD, 0.05pF, bidirectional, Vrwm 12V (Semtech ref populates this)"
 			(at 414.02 243.84 0)
 			(effects
 				(font (size 1.27 1.27))
@@ -15472,7 +15479,7 @@
 		(exclude_from_sim no)
 		(in_bom yes)
 		(on_board yes)
-		(dnp yes)
+		(dnp no)
 		(uuid "0324edcd-9b6d-5732-80c4-e724c68bedcd")
 		(property "Reference" "D7"
 			(at 416.56 354.33 90)
@@ -15481,7 +15488,7 @@
 				(justify right)
 			)
 		)
-		(property "Value" "ESD101-B1-02ELS"
+		(property "Value" "PESD0402V12"
 			(at 416.56 356.87 90)
 			(effects
 				(font (size 1.27 1.27))
@@ -15502,14 +15509,21 @@
 				(hide yes)
 			)
 		)
-		(property "MPN" "ESD101-B1-02ELS"
+		(property "MPN" "PESD0402V12"
 			(at 414.02 355.6 0)
 			(effects
 				(font (size 1.27 1.27))
 				(hide yes)
 			)
 		)
-		(property "Spec" "Optional RF ESD, <=0.2pF, Vrwm>=5.5V"
+		(property "LCSC" "C19626255"
+			(at 414.02 355.6 0)
+			(effects
+				(font (size 1.27 1.27))
+				(hide yes)
+			)
+		)
+		(property "Spec" "Antenna ESD, 0.05pF, bidirectional, Vrwm 12V (Semtech ref populates this)"
 			(at 414.02 355.6 0)
 			(effects
 				(font (size 1.27 1.27))
