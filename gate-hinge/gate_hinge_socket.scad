@@ -1,9 +1,11 @@
 // Stair-gate hinge socket (female part, wall mounted).
 // The gate's L-shaped pin drops into the bore; its whole straight leg sits inside the sleeve
-// and the pin tip rests on the bore floor.
+// and the pin tip rests on the bore floor, which sets the gate height.
 // Axes: X along the wall, Y away from the wall (wall at Y=0), Z up.
-// Z=0 is the centre of the lower (existing) screw hole.
-// Print upright (as modelled, flat bottom on the bed, bore facing up) - no supports needed.
+// Origin = centre of the lower existing screw hole. The sleeve sits beside the screws so it
+// can stay at the original height while both screws remain reachable.
+// Print upright (flat bottom on the bed, bore facing up) - no supports needed.
+// To put the sleeve on the other side, mirror the part in the slicer.
 
 /* [Pin] measured: 7.9 mm wide part, 5 mm neck, ~32 mm straight leg below the bend */
 bore_d      = 8.3;   // 7.9 mm pin + clearance
@@ -11,27 +13,31 @@ bore_depth  = 31;    // whole straight leg of the pin, stopping just short of th
 floor_t     = 3;
 drain_d     = 3;
 chamfer     = 1;     // lead-in at the top of the bore
+tip_below_screw = 20.5; // pin tip height below the lower screw centre (sets gate height)
 
 /* [Sleeve] */
 offset      = 12;    // bore centre distance from the wall
 wall        = 4;     // sleeve wall thickness around the bore
-top_gap     = 6;     // sleeve top this far below the lower screw centre (screw head clearance)
 
 /* [Wall plate - reuses the existing holes] */
-plate_w       = 20;
 plate_t       = 5;
 screw_spacing = 31;  // centre to centre of the two existing holes (measure!)
 slot          = 3;   // upper hole is a vertical slot so +-1.5 mm spacing error still fits
 screw_d       = 4.5;
 head_d        = 8.5; // countersink diameter
-margin_top    = 7;
+head_gap      = 1;   // clearance between screw head and sleeve
+margin        = 6;   // plate material around the screws
 
 $fn = 64;
 
 boss_d   = bore_d + 2 * wall;
-boss_top = -top_gap;
-boss_bot = boss_top - bore_depth - floor_t;
-plate_top = screw_spacing + slot / 2 + margin_top;
+side_x   = boss_d / 2 + head_d / 2 + head_gap;  // sleeve shifted sideways from the screws
+floor_z  = -tip_below_screw;
+boss_top = floor_z + bore_depth;
+boss_bot = floor_z - floor_t;
+plate_x0 = -head_d / 2 - margin / 2;
+plate_x1 = side_x + boss_d / 2;
+plate_top = max(screw_spacing + slot / 2 + margin, boss_top);
 cs = (head_d - screw_d) / 2;
 
 module countersunk_hole(len) {
@@ -43,13 +49,13 @@ module countersunk_hole(len) {
 
 difference() {
     union() {
-        translate([-plate_w/2, 0, boss_bot]) cube([plate_w, plate_t, plate_top - boss_bot]);
-        translate([0, offset, boss_bot]) cylinder(d = boss_d, h = boss_top - boss_bot);
-        translate([-boss_d/2, 0, boss_bot]) cube([boss_d, offset, boss_top - boss_bot]);
+        translate([plate_x0, 0, boss_bot]) cube([plate_x1 - plate_x0, plate_t, plate_top - boss_bot]);
+        translate([side_x, offset, boss_bot]) cylinder(d = boss_d, h = boss_top - boss_bot);
+        translate([side_x - boss_d/2, 0, boss_bot]) cube([boss_d, offset, boss_top - boss_bot]);
     }
-    translate([0, offset, boss_top - bore_depth]) cylinder(d = bore_d, h = bore_depth + 1);
-    translate([0, offset, boss_top - chamfer]) cylinder(d1 = bore_d, d2 = bore_d + 2 * chamfer, h = chamfer + 0.01);
-    translate([0, offset, boss_bot - 1]) cylinder(d = drain_d, h = floor_t + 2);
+    translate([side_x, offset, floor_z]) cylinder(d = bore_d, h = bore_depth + 1);
+    translate([side_x, offset, boss_top - chamfer]) cylinder(d1 = bore_d, d2 = bore_d + 2 * chamfer, h = chamfer + 0.01);
+    translate([side_x, offset, boss_bot - 1]) cylinder(d = drain_d, h = floor_t + 2);
     countersunk_hole(0);
     translate([0, 0, screw_spacing]) countersunk_hole(slot);
 }
