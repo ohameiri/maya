@@ -5,7 +5,6 @@
 // Origin = centre of the lower existing screw hole. The sleeve sits beside the screws so it
 // can stay at the original height while both screws remain reachable.
 // Print upright (flat bottom on the bed, bore facing up) - no supports needed.
-// To put the sleeve on the other side, mirror the part in the slicer.
 
 /* [Pin] measured: 7.9 mm wide part, 5 mm neck, ~32 mm straight leg below the bend */
 bore_d      = 8.3;   // 7.9 mm pin + clearance
@@ -13,11 +12,13 @@ bore_depth  = 31;    // whole straight leg of the pin, stopping just short of th
 floor_t     = 3;
 drain_d     = 3;
 chamfer     = 1;     // lead-in at the top of the bore
-tip_below_screw = 20.5; // pin tip height below the lower screw centre (sets gate height)
+tip_below_screw = 9;  // pin tip height below the lower screw centre (sets gate height; ~9 on the original part)
 
 /* [Sleeve] */
-offset      = 12;    // bore centre distance from the wall
+offset      = 9;     // bore centre distance from the wall (~8.5 on the original part)
 wall        = 4;     // sleeve wall thickness around the bore
+
+sleeve_side = 1;     // 1 = sleeve LEFT of the screws when facing the wall, -1 = right
 
 /* [Wall plate - reuses the existing holes] */
 plate_t       = 5;
@@ -31,12 +32,13 @@ margin        = 6;   // plate material around the screws
 $fn = 64;
 
 boss_d   = bore_d + 2 * wall;
-side_x   = boss_d / 2 + head_d / 2 + head_gap;  // sleeve shifted sideways from the screws
+// +X is to the left of someone facing the wall (Y points out of the wall towards them)
+side_x   = sleeve_side * (boss_d / 2 + head_d / 2 + head_gap);
 floor_z  = -tip_below_screw;
 boss_top = floor_z + bore_depth;
 boss_bot = floor_z - floor_t;
-plate_x0 = -head_d / 2 - margin / 2;
-plate_x1 = side_x + boss_d / 2;
+plate_x0 = min(-head_d / 2 - margin / 2, side_x - boss_d / 2);
+plate_x1 = max(head_d / 2 + margin / 2, side_x + boss_d / 2);
 plate_top = max(screw_spacing + slot / 2 + margin, boss_top);
 cs = (head_d - screw_d) / 2;
 

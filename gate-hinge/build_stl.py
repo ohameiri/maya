@@ -2,19 +2,19 @@
 import numpy as np, trimesh
 from manifold3d import Manifold
 
-bore_d, bore_depth, floor_t, drain_d, chamfer, tip_below_screw = 8.3, 31, 3, 3, 1, 20.5
-offset, wall = 12, 4
+bore_d, bore_depth, floor_t, drain_d, chamfer, tip_below_screw = 8.3, 31, 3, 3, 1, 9
+offset, wall, sleeve_side = 9, 4, 1  # sleeve_side 1 = left of the screws when facing the wall
 plate_t, screw_spacing, slot = 5, 31, 3
 screw_d, head_d, head_gap, margin = 4.5, 8.5, 1, 6
 FN = 64
 
 boss_d = bore_d + 2 * wall
-side_x = boss_d / 2 + head_d / 2 + head_gap
+side_x = sleeve_side * (boss_d / 2 + head_d / 2 + head_gap)  # +X = left when facing the wall
 floor_z = -tip_below_screw
 boss_top = floor_z + bore_depth
 boss_bot = floor_z - floor_t
-plate_x0 = -head_d / 2 - margin / 2
-plate_x1 = side_x + boss_d / 2
+plate_x0 = min(-head_d / 2 - margin / 2, side_x - boss_d / 2)
+plate_x1 = max(head_d / 2 + margin / 2, side_x + boss_d / 2)
 plate_top = max(screw_spacing + slot / 2 + margin, boss_top)
 cs = (head_d - screw_d) / 2
 
